@@ -1,6 +1,4 @@
-// Mobile API Client for Parental Screen Tracker
-
-let API_BASE_URL = 'http://10.0.2.2:8000'; // Default for Android emulator (or LAN IP for physical device)
+let API_BASE_URL = 'http://10.40.255.235:8000'; // Default host PC LAN IP
 
 export const setApiBaseUrl = (url) => {
   API_BASE_URL = url.replace(/\/$/, '');
