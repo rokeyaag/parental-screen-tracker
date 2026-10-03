@@ -1,88 +1,126 @@
 # Parental Screen & Activity Tracker 2.0 (PostgreSQL 16)
 
-Windows ডেস্কটপে সন্তানদের স্ক্রিন টাইম পর্যবেক্ষণ, গেম খেলার সময়সীমা নিয়ন্ত্রণ এবং পড়াশোনার সময় বজায় রাখার জন্য তৈরি একটি স্বয়ংক্রিয় ও আধুনিক সিস্টেম।
+An automated, cross-platform parental monitoring and screen-time management system designed to monitor children's computer activities, enforce game and entertainment limits, encourage study habits, and provide comprehensive real-time analytics.
 
 ---
 
-## ফিচারসমূহ (Key Features)
+## Key Features
 
-1. **Active Application & Smart Web Monitoring**:
-   - উইন্ডোজের সক্রিয় উইন্ডো ও প্রসেসের নাম (যেমন: `robloxplayerbeta.exe`, `valorant.exe`, `chrome.exe`, `code.exe`) নিখুঁতভাবে ট্র্যাক করে।
-   - **স্মার্ট ব্রাউজার ক্যাটাগরাইজেশন**: Chrome বা Edge ব্রাউজারে YouTube, Poki, Roblox, Facebook, Khan Academy ইত্যাদি ট্যাবের নাম দেখে স্বয়ংক্রিয়ভাবে ক্যাটাগরি নির্ধারণ করে।
-   - ৩ মিনিট কোনো মাউস/কিবোর্ড ইনপুট না থাকলে স্বয়ংক্রিয়ভাবে ট্র্যাকিং পজ করে (Idle Detection)।
+1. **Active Application & Smart Browser Monitoring**:
+   - Accurately tracks foreground windows and executable names (e.g., `robloxplayerbeta.exe`, `valorant.exe`, `chrome.exe`, `code.exe`).
+   - **Smart Category Inference**: Analyzes browser tab titles across Chrome, Edge, and Firefox to automatically categorize activity into Education, Gaming, Browsing, and Social Media (e.g., YouTube, Khan Academy, Wikipedia, Roblox, Poki).
+   - **Idle Detection**: Automatically pauses time accumulation when no keyboard or mouse activity is detected for 3+ minutes.
 
-2. **Game & App Limits (সময়সীমা নিয়ন্ত্রণ)**:
-   - প্রতিটি গেমের জন্য আলাদা দৈনিক লিমিট (যেমন: Roblox সর্বোচ্চ ৬০ মিনিট)।
-   - ৫ মিনিট বাকি থাকতে স্ক্রিনে ওয়ার্নিং নোটিফিকেশন।
-   - সময় শেষ হলে স্ক্রিনে পপআপ দিয়ে গেম ক্লোজ করে দেওয়া।
-   - দৈনিক মোট স্ক্রিন টাইম কোটা অতিক্রম করলে স্বয়ংক্রিয় সতর্কতা।
+2. **Game & App Quota Enforcement**:
+   - Dedicated daily time allowances per game or entertainment application (e.g., Roblox maximum 60 minutes/day).
+   - Visual advance warning popup before time expiration.
+   - Enforced graceful termination when daily quota is exceeded.
+   - Total daily screen-time quota enforcement across all activities.
 
-3. **Study Mode & Emergency Lock (স্টাডি মোড ও তাৎক্ষণিক লক)**:
-   - পড়ার নির্ধারিত সময়ে (যেমন সন্ধ্যা ৭:০০ টা থেকে রাত ১০:০০ টা) অথবা ড্যাশবোর্ড থেকে এক ক্লিকে স্টাডি মোড চালু করলে কোনো গেম বা সোশ্যাল চ্যাট ওপেন হবে না।
-   - ইমার্জেন্সি স্ক্রিন লক দিয়ে তাৎক্ষণিকভাবে কম্পিউটার ব্যবহার সীমাবদ্ধ করা যায়।
+3. **Study Mode & Instant Emergency Lock**:
+   - **Scheduled Study Mode**: Blocks gaming, chat, and distraction apps during designated study hours (e.g., 7:00 PM – 10:00 PM).
+   - **Instant Remote Lock**: Parents can lock the child's workstation instantly from the web or mobile dashboard.
 
-4. **সতর্কতা ও ভায়োলেশন হিস্ট্রি (Alerts History)**:
-   - বাচ্চাদের স্ক্রিনে যেসব পপআপ নোটিফিকেশন বা ব্লকিং মেসেজ প্রদর্শিত হয়, তার তারিখ ও সময়সহ সম্পূর্ণ লগ ডাটাবেসে সংরক্ষিত থাকে।
+4. **Offline Resilience & Auto-Sync**:
+   - Zero data loss architecture. Activity logs are buffered in a local SQLite database whenever the network or PostgreSQL server is offline.
+   - Automatically synchronizes and drains cached records to PostgreSQL 16 upon reconnection.
 
-5. **Parent Web Dashboard (আধুনিক ডার্ক ও গ্লাস থিম ড্যাশবোর্ড)**:
-   - রিয়েল-টাইম পাই-চার্ট এবং বিগত **৭ দিনের তুলনামূলক উইকলি ট্রেন্ড বার-চার্ট**।
-   - **লাইভ উইন্ডো ট্র্যাকার**: সন্তান এই মুহূর্তে কোন অ্যাপ ও ডকুমেন্টে কাজ করছে তা ড্যাশবোর্ডে লাইভ দেখতে পাবেন।
-   - এক ক্লিকে পুরো অ্যাক্টিভিটি রিপোর্ট **CSV ফরম্যাটে এক্সপোর্ট ও ডাউনলোড** করার সুবিধা।
-   - নতুন রুল যোগ করা, সময় পরিবর্তন বা রুল ডিলিট করার সম্পূর্ণ ইন্টারফেস।
+5. **Parent Web Dashboard**:
+   - Real-time pie charts and 7-day comparative screen time trend bar charts powered by Chart.js.
+   - **Live Window Inspector**: Monitor what the child is currently viewing or playing in real time.
+   - One-click CSV export and report download.
+   - Full rule management: add, edit, or remove time limits and process restrictions on the fly.
 
-6. **PostgreSQL 16 Database**:
-   - সকল লগ, রুলস, অ্যালার্ট হিস্ট্রি ও ডিভাইস ডাটা আপনার লোকাল PostgreSQL ডাটাবেসে দ্রুত ও সুরক্ষিতভাবে সংরক্ষিত থাকে।
+6. **Cross-Platform Mobile App (React Native)**:
+   - Companion mobile application for Android and iOS providing remote monitoring, rule configuration, and instant controls for parents.
+
+7. **Windows Background Client**:
+   - Runs silently in the background with automatic Windows Startup registration.
+   - Compatible with Windows 11 Smart App Control via signed execution runtime.
 
 ---
 
-## ফাইল স্ট্রাকচার
+## Project Structure
 
 ```
 parental-screen-tracker/
-├── config.py                 # ডাটাবেস ও কনফিগারেশন সেটিংস
-├── database.py               # PostgreSQL সংযোগ, অ্যালার্ট লগিং ও কোয়েরি
-├── models.py                 # SQLAlchemy স্কিমা ও মডেলসমূহ
-├── requirements.txt          # প্রয়োজনীয় পাইথন প্যাকেজের তালিকা
-├── start.bat                 # এক ক্লিকে পুরো সিস্টেম চালু করার স্ক্রিপ্ট
-├── test_system.py            # সম্পূর্ণ পাইপলাইন ভেরিফিকেশন ও টেস্ট স্ক্রিপ্ট
-├── run_dashboard.py          # ওয়েব ড্যাশবোর্ড সার্ভার
-├── run_tracker.py            # ব্যাকগ্রাউন্ড উইন্ডোজ ট্র্যাকার
+├── config.py                 # Configuration settings and environment parameters
+├── database.py               # PostgreSQL connection pool, queries, and migrations
+├── models.py                 # SQLAlchemy schemas and database models
+├── requirements.txt          # Python dependencies
+├── start.bat                 # One-click startup script for server and tracker
+├── test_system.py            # End-to-end verification and pipeline test script
+├── run_dashboard.py          # Web dashboard FastAPI server entry point
+├── run_tracker.py            # Windows background tracking agent entry point
+├── windows_client_entry.py   # Windows background runner with autostart and single-instance mutex
 ├── tracker/
-│   ├── window_monitor.py     # ফোরগ্রাউন্ড উইন্ডো ও আইডল ডিটেক্টর
-│   ├── enforcer.py           # রুলস, লিমিট, ওয়ার্নিং পপআপ ও প্রসেস টার্মিনেটর
-│   └── client.py             # মেইন ট্র্যাকার লুপ, স্মার্ট ওয়েব ক্যাটাগরাইজার ও ডাটাবেস সিঙ্ক
-└── server/
-    ├── app.py                # FastAPI ওয়েব ব্যাকএন্ড ও REST APIs
-    └── templates/
-        └── dashboard.html    # রেস্পন্সিভ আধুনিক ডার্ক ড্যাশবোর্ড UI
+│   ├── window_monitor.py     # Foreground window inspector and idle detection
+│   ├── enforcer.py           # Quota enforcer, warning popups, and process controller
+│   ├── client.py             # Main tracker client, web categorizer, and database sync
+│   └── offline_manager.py    # Local SQLite buffer and offline synchronization engine
+├── server/
+│   ├── app.py                # FastAPI web backend, REST APIs, and endpoints
+│   └── templates/
+│       └── dashboard.html    # Modern responsive dashboard web interface
+└── mobile_app/               # React Native companion mobile dashboard (Expo)
+    ├── App.js                # Mobile app entry and navigation
+    ├── package.json          # Mobile dependencies
+    └── src/
+        ├── api/client.js     # REST API client
+        └── screens/          # Home, Rules, Alerts, Timeline, and Settings screens
 ```
 
 ---
 
-## যেভাবে চালাবেন (How to Run)
+## Getting Started
 
-### সহজ পদ্ধতি (One-Click Launch):
-প্রজেক্টের ভেতর থাকা [start.bat](file:///f:/ICTBD_02/PycharmProjects/parental-screen-tracker/start.bat) ফাইলে ডাবল ক্লিক করুন। এটি ডাটাবেস চেক করে ব্যাকগ্রাউন্ডে সার্ভার ও ট্র্যাকার চালু করে দেবে।
+### Prerequisites:
+- Python 3.10+
+- PostgreSQL 16
+- Node.js 18+ (for mobile app)
 
-### কমান্ড লাইন পদ্ধতি:
-১. টার্মিনাল খুলে ভার্চুয়াল এনভায়রনমেন্ট চালু করুন:
-```powershell
-cd F:\ICTBD_02\PycharmProjects\parental-screen-tracker
-.\.venv\Scripts\Activate.ps1
+### 1. Installation
+Clone the repository and install the dependencies:
+```bash
+git clone https://github.com/rokeyaag/parental-screen-tracker.git
+cd parental-screen-tracker
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
-২. সিস্টেম টেস্ট চালাতে:
-```powershell
+### 2. Configure Database
+Ensure PostgreSQL 16 is running, then configure your database connection in `config.py` or through environment variables:
+```python
+DB_NAME = "parental_tracker"
+DB_USER = "postgres"
+DB_PASSWORD = "your_password"
+DB_HOST = "localhost"
+DB_PORT = "5432"
+```
+
+### 3. Run Pipeline Test
+Verify the database connection and tracking pipeline:
+```bash
 python test_system.py
 ```
 
-৩. ওয়েব ড্যাশবোর্ড চালু করতে:
-```powershell
+### 4. Start the Web Dashboard
+Launch the FastAPI parent dashboard:
+```bash
 python run_dashboard.py
 ```
-এরপর ব্রাউজারে গিয়ে দেখুন: [http://localhost:8000](http://localhost:8000)
+Open your browser and navigate to: [http://localhost:8000](http://localhost:8000)
 
-৪. ট্র্যাকার ব্যাকগ্রাউন্ডে চালু করতে (আলাদা টার্মিনালে):
-```powershell
-python run_tracker.py
+### 5. Start the Background Tracker
+Run the background agent on the child's PC:
+```bash
+python windows_client_entry.py
 ```
+Or double-click `Start-Tracker.bat` to launch the background service with automatic Windows Startup registration.
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

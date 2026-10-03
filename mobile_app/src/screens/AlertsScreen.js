@@ -41,13 +41,13 @@ export default function AlertsScreen() {
   const getBadgeStyle = (type) => {
     switch (type) {
       case 'limit_warning':
-        return { bg: colors.accentYellowLight, text: colors.accentYellowDark, label: '৫ মিনিট বাকি' };
+        return { bg: colors.accentYellowLight, text: colors.accentYellowDark, label: '5 Mins Left' };
       case 'limit_exceeded':
-        return { bg: colors.accentRedLight, text: colors.accentRed, label: 'সময় শেষ' };
+        return { bg: colors.accentRedLight, text: colors.accentRed, label: 'Limit Reached' };
       case 'study_mode_block':
-        return { bg: colors.accentYellowLight, text: colors.accentYellowDark, label: 'পড়ার সময়' };
+        return { bg: colors.accentYellowLight, text: colors.accentYellowDark, label: 'Study Hours' };
       case 'emergency_lock':
-        return { bg: colors.accentRed, text: '#ffffff', label: 'প্যারেন্ট লক' };
+        return { bg: colors.accentRed, text: '#ffffff', label: 'Parental Lock' };
       default:
         return { bg: colors.browsingBg, text: colors.textSecondary, label: type };
     }
@@ -75,16 +75,16 @@ export default function AlertsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>সতর্কতা ও ভায়োলেশন হিস্ট্রি</Text>
-        <Text style={styles.subTitle}>বাচ্চার স্ক্রিনে পাঠানো সতর্কতা ও অ্যাপ ব্লকিং বার্তা</Text>
+        <Text style={styles.title}>Security Alerts & History</Text>
+        <Text style={styles.subTitle}>Log of popups, warnings, and app enforcements sent to child screen</Text>
       </View>
 
       {loading && !refreshing ? (
         <ActivityIndicator size="large" color={colors.accentYellow} style={{ marginTop: 40 }} />
       ) : alerts.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>কোনো ভায়োলেশন নেই</Text>
-          <Text style={styles.emptySub}>সব অ্যাপ নিয়ম অনুযায়ী চলছে।</Text>
+          <Text style={styles.emptyTitle}>No Security Violations</Text>
+          <Text style={styles.emptySub}>All applications are running within allowed rules.</Text>
         </View>
       ) : (
         <FlatList

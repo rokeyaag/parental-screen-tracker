@@ -421,7 +421,7 @@
         <div id="liveToast" class="toast align-items-center text-dark bg-white border border-slate-200 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body" id="toastMessage">
-                    নোটিফিকেশন
+                    Notification
                 </div>
                 <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
             </div>
@@ -436,7 +436,7 @@
                     <i class="fa-solid fa-shield-cat fs-4" style="color: var(--accent-yellow);"></i>
                 </div>
                 <div>
-                    <div class="fw-bold fs-5 tracking-wide text-dark">প্যারেন্টাল কন্ট্রোল ড্যাশবোর্ড</div>
+                    <div class="fw-bold fs-5 tracking-wide text-dark">Parental Control Dashboard</div>
                     <div class="small text-secondary" style="font-size: 0.75rem;">Windows Screen Time & Activity Monitor (PostgreSQL 16)</div>
                 </div>
             </a>
@@ -445,7 +445,7 @@
                 <!-- Device Status Pill -->
                 <div class="d-none d-md-flex align-items-center px-3 py-1 rounded-pill bg-light border border-slate-200" id="liveDeviceBadge">
                     <span class="{% if live_status.online %}pulse-live{% else %}pulse-offline{% endif %} me-2" id="pulseDot"></span>
-                    <span class="small fw-semibold text-secondary me-1">ডিভাইস:</span>
+                    <span class="small fw-semibold text-secondary me-1">Device:</span>
                     <span class="small fw-bold text-dark me-2">{{ device_name }}</span>
                     <span class="badge bg-secondary bg-opacity-25 text-dark rounded-pill">{{ assigned_child }}</span>
                 </div>
@@ -462,7 +462,7 @@
                     </div>
 
                     <!-- Worldwide Languages Modal Trigger (180+ Countries) -->
-                    <button class="btn lang-menu-btn ms-2" type="button" data-bs-toggle="modal" data-bs-target="#worldwideLanguageModal" title="বিশ্বের ১৮০+ দেশ ও ভাষা (180+ Worldwide Countries & Languages)">
+                    <button class="btn lang-menu-btn ms-2" type="button" data-bs-toggle="modal" data-bs-target="#worldwideLanguageModal" title="180+ Worldwide Countries & Languages">
                         <i class="fa-solid fa-bars fs-6"></i>
                     </button>
                 </div>
@@ -471,18 +471,18 @@
                 <div id="google_translate_element" style="display:none;"></div>
 
                 <!-- Download Windows EXE Installer -->
-                <a href="/api/download/tracker.exe" class="btn btn-red btn-sm rounded-pill px-3 shadow-sm" title="উইন্ডোজ ট্র্যাকার সেটআপ (.exe) ডাউনলোড করুন">
-                    <i class="fa-brands fa-windows me-1"></i> ডাউনলোড .exe
+                <a href="/api/download/tracker.exe" class="btn btn-red btn-sm rounded-pill px-3 shadow-sm" title="Download Windows Tracker Setup (.exe)">
+                    <i class="fa-brands fa-windows me-1"></i> Download .exe
                 </a>
 
                 <!-- Export CSV Button -->
-                <a href="/api/export/csv" class="btn btn-outline-white btn-sm rounded-pill px-3" title="অ্যাক্টিভিটি রিপোর্ট ডাউনলোড করুন">
-                    <i class="fa-solid fa-file-arrow-down me-1" style="color: var(--accent-yellow);"></i> CSV রিপোর্ট
+                <a href="/api/export/csv" class="btn btn-outline-white btn-sm rounded-pill px-3" title="Export Activity CSV Report">
+                    <i class="fa-solid fa-file-arrow-down me-1" style="color: var(--accent-yellow);"></i> CSV Report
                 </a>
 
                 <!-- Manual Refresh Button -->
                 <button onclick="refreshDashboardData()" class="btn btn-outline-yellow btn-sm rounded-pill px-3">
-                    <i class="fa-solid fa-arrows-rotate me-1" id="refreshSpinner"></i> রিফ্রেশ
+                    <i class="fa-solid fa-arrows-rotate me-1" id="refreshSpinner"></i> Refresh
                 </button>
             </div>
         </div>
@@ -499,7 +499,7 @@
                         <i class="fa-solid fa-laptop fs-5" style="color: var(--accent-yellow);"></i>
                     </div>
                     <div>
-                        <div class="small text-secondary fw-semibold">লাইভ উইন্ডো ট্র্যাকিং (Real-time Status)</div>
+                <div class="fw-bold fs-5 text-dark"><i class="fa-solid fa-book-open-reader me-2 text-warning"></i> Study Mode</div>
                         <div class="fw-bold fs-6" id="liveAppDisplay">
                             <span class="badge badge-cat-browsing me-2" id="liveAppCategory">{{ live_status.current_category }}</span>
                             <span class="text-dark fw-bold" id="liveAppName">{{ live_status.current_app }}</span>
@@ -509,9 +509,9 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <span class="small text-secondary" id="lastSeenText">সর্বশেষ রেকর্ড: {{ live_status.last_activity_time or 'N/A' }}</span>
+                    <p class="small text-secondary mb-0">Temporarily block gaming & social media apps</p>
                     <span class="badge {% if live_status.online %}bg-warning bg-opacity-25 text-warning border-warning{% else %}bg-secondary bg-opacity-25 text-secondary border-secondary{% endif %} border border-opacity-50 px-2 py-1 rounded-pill" id="onlineBadge">
-                        {% if live_status.online %}অনলাইন (সক্রিয়){% else %}অফলাইন{% endif %}
+                        {% if study_mode_active %}Active{% else %}Disabled{% endif %}
                     </span>
                 </div>
             </div>
@@ -524,14 +524,14 @@
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <i class="fa-solid fa-book-open-reader fs-5" style="color: var(--accent-yellow);"></i>
-                            <h6 class="fw-bold mb-0 text-dark">স্টাডি মোড (Study Mode)</h6>
+                        <i class="fa-solid fa-toggle-on me-1"></i> {% if study_mode_active %}Disable Study Mode{% else %}Enable Study Mode{% endif %}
                         </div>
-                        <p class="small text-secondary mb-0">চালু থাকলে পড়ার সময়ে গেম ও সোশ্যাল মিডিয়া স্বয়ংক্রিয়ভাবে ব্লক থাকবে।</p>
+                    <p class="small text-secondary mb-0">When active, gaming and social media apps are automatically blocked during study hours.</p>
                     </div>
                     <button id="studyBtn" onclick="toggleStudyMode()" class="btn {% if study_mode %}btn-yellow{% else %}btn-outline-yellow{% endif %} px-4 py-2 rounded-pill fw-bold">
-                        <i class="fa-solid fa-power-off me-1"></i> {% if study_mode %}চালু আছে{% else %}বন্ধ আছে{% endif %}
+                        <i class="fa-solid fa-power-off me-1"></i> {% if study_mode %}Active{% else %}Disabled{% endif %}
                     </button>
-                </div>
+                <div class="fw-bold fs-5 text-dark"><i class="fa-solid fa-shield-halved me-2 text-danger"></i> Emergency Device Lock</div>
             </div>
 
             <div class="col-md-6">
@@ -539,12 +539,12 @@
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <i class="fa-solid fa-lock fs-5" style="color: var(--accent-red);"></i>
-                            <h6 class="fw-bold mb-0 text-dark">ইমার্জেন্সি স্ক্রিন লক (Emergency Lock)</h6>
+                    <p class="small text-secondary mb-0">Immediately lock and freeze screen</p>
                         </div>
-                        <p class="small text-secondary mb-0">তাৎক্ষণিকভাবে যে কোনো সময় কম্পিউটারের স্ক্রিন বন্ধ বা লক রাখতে।</p>
+                        {% if emergency_lock %}Locked{% else %}Unlocked{% endif %}
                     </div>
                     <button id="lockBtn" onclick="toggleEmergencyLock()" class="btn {% if emergency_lock %}btn-red{% else %}btn-outline-red{% endif %} px-4 py-2 rounded-pill fw-bold">
-                        <i class="fa-solid fa-lock me-1"></i> {% if emergency_lock %}লক করা আছে{% else %}আনলক{% endif %}
+                        <i class="fa-solid fa-lock me-1"></i> {% if emergency_lock %}Locked{% else %}Unlocked{% endif %}
                     </button>
                 </div>
             </div>
@@ -556,14 +556,14 @@
             <div class="col-sm-6 col-lg-3">
                 <div class="card-custom p-3 stat-card-glow glow-white h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="small text-secondary fw-semibold">আজকের মোট স্ক্রিন টাইম</span>
+                        <span class="small text-secondary fw-semibold">Today's Total Screen Time</span>
                         <div class="stat-icon-box" style="background: #f1f5f9; color: #0f172a;">
                             <i class="fa-solid fa-clock"></i>
                         </div>
                     </div>
                     <h3 class="fw-bold mb-2 text-dark" id="statTotal">{{ summary.total }}</h3>
                     <div class="d-flex justify-content-between small text-secondary mb-1">
-                        <span>দৈনিক কোটা: {{ summary.daily_limit_mins }} মিনিট</span>
+                        <span>Daily Limit: {{ summary.daily_limit_mins }} mins</span>
                         <span class="fw-bold text-dark">{{ summary.total_pct }}%</span>
                     </div>
                     <div class="progress progress-thin">
@@ -576,13 +576,13 @@
             <div class="col-sm-6 col-lg-3">
                 <div class="card-custom p-3 stat-card-glow glow-red h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="small text-secondary fw-semibold">গেম খেলা (Gaming)</span>
+                        <span class="small text-secondary fw-semibold">Gaming Usage</span>
                         <div class="stat-icon-box" style="background: rgba(239, 35, 60, 0.12); color: var(--accent-red);">
                             <i class="fa-solid fa-gamepad"></i>
                         </div>
                     </div>
                     <h3 class="fw-bold mb-1" style="color: var(--accent-red);" id="statGaming">{{ summary.gaming }}</h3>
-                    <span class="small text-secondary">সীমা অতিক্রম করলে স্বয়ংক্রিয় টার্মিনেশন</span>
+                    <span class="small text-secondary">Auto-terminated when limit exceeded</span>
                 </div>
             </div>
 
@@ -590,13 +590,13 @@
             <div class="col-sm-6 col-lg-3">
                 <div class="card-custom p-3 stat-card-glow glow-yellow h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="small text-secondary fw-semibold">পড়াশোনা ও প্রোগ্রামিং</span>
+                        <span class="small text-secondary fw-semibold">Study & Productivity</span>
                         <div class="stat-icon-box" style="background: rgba(245, 158, 11, 0.12); color: var(--accent-yellow);">
                             <i class="fa-solid fa-graduation-cap"></i>
                         </div>
                     </div>
                     <h3 class="fw-bold mb-1" style="color: var(--accent-yellow);" id="statStudy">{{ summary.study }}</h3>
-                    <span class="small text-secondary">VS Code, Zoom, বই, ডকস ইত্যাদি</span>
+                    <span class="small text-secondary">VS Code, Zoom, Docs, Books, etc.</span>
                 </div>
             </div>
 
@@ -604,13 +604,13 @@
             <div class="col-sm-6 col-lg-3">
                 <div class="card-custom p-3 stat-card-glow glow-white h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="small text-secondary fw-semibold">ব্রাউজিং ও মিডিয়া</span>
+                        <span class="small text-secondary fw-semibold">Browsing & Media</span>
                         <div class="stat-icon-box" style="background: #f1f5f9; color: #0f172a;">
                             <i class="fa-solid fa-globe"></i>
                         </div>
                     </div>
                     <h3 class="fw-bold mb-1 text-dark" id="statBrowsing">{{ summary.browsing }}</h3>
-                    <span class="small text-secondary">Chrome, Edge, YouTube ও অন্যান্য</span>
+                    <span class="small text-secondary">Chrome, Edge, YouTube, etc.</span>
                 </div>
             </div>
         </div>
@@ -619,27 +619,27 @@
         <ul class="nav nav-pills nav-pills-custom mb-4 gap-2" id="dashboardTabs" role="tablist">
             <li class="nav-item">
                 <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-overview">
-                    <i class="fa-solid fa-chart-pie me-1"></i> ওভারভিউ ও চার্ট
+                    <i class="fa-solid fa-chart-pie me-1"></i> Overview & Charts
                 </button>
             </li>
             <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-rules">
-                    <i class="fa-solid fa-sliders me-1"></i> রুলস ও লিমিট নিয়ন্ত্রণ
+                    <i class="fa-solid fa-sliders me-1"></i> Rules & Limits
                 </button>
             </li>
             <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-timeline">
-                    <i class="fa-solid fa-clock-rotate-left me-1"></i> লাইভ টাইমলাইন (Logs)
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> Live Timeline (Logs)
                 </button>
             </li>
             <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-alerts">
-                    <i class="fa-solid fa-triangle-exclamation me-1"></i> সতর্কতা হিস্ট্রি (Alerts)
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> Alerts History
                 </button>
             </li>
             <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-settings">
-                    <i class="fa-solid fa-gear me-1"></i> শিডিউল ও সেটিংস
+                    <i class="fa-solid fa-gear me-1"></i> Schedule & Settings
                 </button>
             </li>
         </ul>
@@ -654,14 +654,14 @@
                     <div class="col-lg-5">
                         <div class="card-custom p-4 h-100">
                             <h5 class="fw-bold mb-3 d-flex align-items-center text-dark">
-                                <i class="fa-solid fa-chart-pie me-2" style="color: var(--accent-yellow);"></i> আজকের কার্যকলাপের ভাগ (Activity Breakdown)
+                                <i class="fa-solid fa-chart-pie me-2" style="color: var(--accent-yellow);"></i> Today's Activity Breakdown
                             </h5>
                             <div style="height: 250px; position: relative;">
                                 <canvas id="usagePieChart"></canvas>
                             </div>
                             <div class="mt-4 pt-3 border-top border-slate-200 small text-secondary d-flex justify-content-between">
-                                <span>ডাটাবেস: <strong class="text-dark">PostgreSQL 16</strong></span>
-                                <span>সিঙ্ক ইন্টারভাল: <strong class="text-dark">15 সেকেন্ড</strong></span>
+                                <span>Database: <strong class="text-dark">PostgreSQL 16</strong></span>
+                                <span>Sync Interval: <strong class="text-dark">15 seconds</strong></span>
                             </div>
                         </div>
                     </div>
@@ -670,13 +670,13 @@
                     <div class="col-lg-7">
                         <div class="card-custom p-4 h-100">
                             <h5 class="fw-bold mb-3 d-flex align-items-center text-dark">
-                                <i class="fa-solid fa-chart-simple me-2" style="color: var(--accent-yellow);"></i> বিগত ৭ দিনের স্ক্রিন টাইম ট্রেন্ড (Weekly Trend)
+                                <i class="fa-solid fa-chart-simple me-2" style="color: var(--accent-yellow);"></i> Last 7 Days Screen Time Trend
                             </h5>
                             <div style="height: 250px; position: relative;">
                                 <canvas id="weeklyBarChart"></canvas>
                             </div>
                             <div class="mt-4 pt-3 border-top border-slate-200 small text-secondary">
-                                প্রতিদিন মোট সময় ও গেম খেলার তুলনামূলক গ্রাফ
+                                Daily comparison of total screen time vs gaming
                             </div>
                         </div>
                     </div>
@@ -686,10 +686,10 @@
                 <div class="card-custom p-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold mb-0 text-dark">
-                            <i class="fa-solid fa-list-check me-2" style="color: var(--accent-yellow);"></i> আজকে ব্যবহৃত অ্যাপসমূহ (Today's Apps)
+                            <i class="fa-solid fa-list-check me-2" style="color: var(--accent-yellow);"></i> Today's Active Applications
                         </h5>
                         <span class="badge bg-light text-dark border border-slate-200 px-3 py-2 rounded-pill">
-                            {{ apps|length }} টি অ্যাপ সক্রিয়
+                            {{ apps|length }} apps active
                         </span>
                     </div>
 
@@ -698,11 +698,11 @@
                         <table class="table table-dark-custom align-middle">
                             <thead>
                                 <tr>
-                                    <th>অ্যাপের নাম ও প্রসেস</th>
-                                    <th>ক্যাটাগরি</th>
-                                    <th>ব্যয়িত সময়</th>
-                                    <th>দৈনিক লিমিট ও প্রগ্রেস</th>
-                                    <th>বর্তমান স্ট্যাটাস</th>
+                                    <th>Application & Process</th>
+                                    <th>Category</th>
+                                    <th>Time Spent</th>
+                                    <th>Daily Limit & Progress</th>
+                                    <th>Current Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -729,23 +729,23 @@
                                     <td style="min-width: 180px;">
                                         {% if app.limit_mins > 0 %}
                                             <div class="d-flex justify-content-between small text-secondary mb-1">
-                                                <span>{{ app.limit_mins }} মিনিট</span>
+                                                <span>{{ app.limit_mins }} mins</span>
                                                 <span class="fw-bold text-dark">{{ app.pct }}%</span>
                                             </div>
                                             <div class="progress progress-thin">
                                                 <div class="progress-bar {% if app.pct >= 100 %}bg-danger{% elif app.pct >= 80 %}bg-warning{% else %}bg-warning{% endif %}" style="width: {{ app.pct }}%;"></div>
                                             </div>
                                         {% else %}
-                                            <span class="text-secondary small">আনলিমিটেড (কোনো লিমিট নেই)</span>
+                                            <span class="text-secondary small">Unlimited (No limit set)</span>
                                         {% endif %}
                                     </td>
                                     <td>
                                         {% if app.is_blocked %}
-                                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-2 py-1 rounded-pill">ব্লকড</span>
+                                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-2 py-1 rounded-pill">Blocked</span>
                                         {% elif app.pct >= 100 and app.limit_mins > 0 %}
-                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">সময় শেষ</span>
+                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">Limit Reached</span>
                                         {% else %}
-                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">অনুমোদিত</span>
+                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">Allowed</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -756,7 +756,7 @@
                     {% else %}
                     <div class="text-center py-5 text-secondary">
                         <i class="fa-solid fa-chart-line fs-1 mb-3 opacity-50"></i>
-                        <p class="mb-0">আজকে এখনো কোনো অ্যাপের উল্লেখযোগ্য রেকর্ড নেই। ট্র্যাকার সক্রিয় রয়েছে।</p>
+                        <p class="mb-0">No application usage recorded yet today. Tracker is actively monitoring.</p>
                     </div>
                     {% endif %}
                 </div>
@@ -768,12 +768,12 @@
                     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
                         <div>
                             <h5 class="fw-bold mb-1 text-dark">
-                                <i class="fa-solid fa-sliders me-2" style="color: var(--accent-yellow);"></i> গেম ও অ্যাপের সময়সীমা নিয়ন্ত্রণ (Rules & Limits)
+                                <i class="fa-solid fa-sliders me-2" style="color: var(--accent-yellow);"></i> Application Rules & Limits Control
                             </h5>
-                            <p class="small text-secondary mb-0">প্রতিটি অ্যাপের জন্য দৈনিক সর্বোচ্চ মিনিট নির্ধারণ করুন বা স্থায়ীভাবে ব্লক করে রাখুন।</p>
+                            <p class="small text-secondary mb-0">Set maximum daily allowed minutes per app or permanently block distractions.</p>
                         </div>
                         <button class="btn btn-yellow rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addRuleModal">
-                            <i class="fa-solid fa-plus me-1"></i> নতুন অ্যাপ যোগ করুন
+                            <i class="fa-solid fa-plus me-1"></i> Add New Rule
                         </button>
                     </div>
 
@@ -781,12 +781,12 @@
                         <table class="table table-dark-custom align-middle">
                             <thead>
                                 <tr>
-                                    <th>অ্যাপের নাম (Friendly Name)</th>
-                                    <th>প্রসেস ফাইল (exe)</th>
-                                    <th>ক্যাটাগরি</th>
-                                    <th style="width: 170px;">দৈনিক লিমিট (মিনিট)</th>
-                                    <th style="width: 110px;" class="text-center">ব্লক রাখুন</th>
-                                    <th style="width: 130px;" class="text-center">অ্যাকশন</th>
+                                    <th>App Name (Friendly Name)</th>
+                                    <th>Process File (.exe)</th>
+                                    <th>Category</th>
+                                    <th style="width: 170px;">Daily Limit (mins)</th>
+                                    <th style="width: 110px;" class="text-center">Block App</th>
+                                    <th style="width: 130px;" class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -812,9 +812,9 @@
                                         <td>
                                             <div class="input-group input-group-sm">
                                                 <input type="number" name="daily_limit_minutes" class="form-control form-control-dark" value="{{ rule.daily_limit_minutes }}" min="0" max="600">
-                                                <span class="input-group-text bg-light border border-slate-200 text-secondary">মিনিট</span>
-                                            </div>
-                                            <div class="text-secondary" style="font-size: 10px;">0 = আনলিমিটেড</div>
+                                        <span class="input-group-text bg-light border border-slate-200 text-secondary" style="font-size: 11px;">mins</span>
+                                    </div>
+                                    <div class="text-secondary" style="font-size: 10px;">0 = Unlimited</div>
                                         </td>
                                         <td class="text-center">
                                             <div class="form-check form-switch d-inline-block">
@@ -823,10 +823,10 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="d-flex gap-1 justify-content-center">
-                                                <button type="submit" class="btn btn-outline-yellow btn-sm rounded-pill px-3" title="সংরক্ষণ">
-                                                    <i class="fa-solid fa-check"></i>
-                                                </button>
-                                                <button type="button" onclick="deleteRule('{{ rule.process_name }}')" class="btn btn-outline-red btn-sm rounded-pill px-2" title="মুছে ফেলুন">
+                                        <button type="submit" class="btn btn-outline-yellow btn-sm rounded-pill px-3" title="Save Rule">
+                                            <i class="fa-solid fa-floppy-disk me-1"></i> Save
+                                        </button>
+                                        <button type="button" onclick="deleteRule('{{ rule.process_name }}')" class="btn btn-outline-red btn-sm rounded-pill px-2" title="Delete Rule">
                                                     <i class="fa-solid fa-trash-can"></i>
                                                 </button>
                                             </div>
@@ -846,12 +846,12 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
                             <h5 class="fw-bold mb-1 text-dark">
-                                <i class="fa-solid fa-clock-rotate-left me-2" style="color: var(--accent-yellow);"></i> লাইভ অ্যাক্টিভিটি টাইমলাইন (Recent Logs)
+                            <i class="fa-solid fa-clock-rotate-left me-2" style="color: var(--accent-yellow);"></i> Live Activity Timeline (Recent Logs)
                             </h5>
-                            <p class="small text-secondary mb-0">উইন্ডোজ ট্র্যাকার কর্তৃক রেকর্ডকৃত সাম্প্রতিক উইন্ডো হিস্ট্রি।</p>
+                            <p class="small text-secondary mb-0">Real-time audit log of window activity captured by Windows tracker.</p>
                         </div>
                         <button onclick="refreshDashboardData()" class="btn btn-outline-yellow btn-sm rounded-pill px-3">
-                            <i class="fa-solid fa-arrows-rotate me-1"></i> আপডেট
+                            <i class="fa-solid fa-arrows-rotate me-1"></i> Refresh
                         </button>
                     </div>
 
@@ -860,11 +860,11 @@
                         <table class="table table-dark-custom align-middle">
                             <thead>
                                 <tr>
-                                    <th style="width: 130px;">সময়</th>
-                                    <th>অ্যাপ্লিকেশনের নাম</th>
-                                    <th>ক্যাটাগরি</th>
-                                    <th>উইন্ডো টাইটেল / ডকুমেন্ট / ট্যাব</th>
-                                    <th style="width: 100px;">সময়কাল</th>
+                                <tr>
+                                    <th>Application Name</th>
+                                    <th>Category</th>
+                                    <th>Window Title / Document / Tab</th>
+                                    <th style="width: 100px;">Duration</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -891,7 +891,7 @@
                     </div>
                     {% else %}
                     <div class="text-center py-5 text-secondary">
-                        <p>এখনো কোনো অ্যাক্টিভিটি লগ সংরক্ষিত হয়নি।</p>
+                        <p>No activity sessions recorded yet today.</p>
                     </div>
                     {% endif %}
                 </div>
@@ -903,9 +903,9 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
                             <h5 class="fw-bold mb-1 text-dark">
-                                <i class="fa-solid fa-triangle-exclamation me-2" style="color: var(--accent-red);"></i> সতর্কতা ও ভায়োলেশন হিস্ট্রি (Alerts History)
+                            <i class="fa-solid fa-triangle-exclamation me-2" style="color: var(--accent-red);"></i> Security Alerts & Blocking History
                             </h5>
-                            <p class="small text-secondary mb-0">বাচ্চাদের স্ক্রিনে যেসব পপআপ সতর্কতা বা ব্লকিং মেসেজ পাঠানো হয়েছে তার সম্পূর্ণ রেকর্ড।</p>
+                            <p class="small text-secondary mb-0">Detailed history of popups, warning notices, and app enforcements sent to the child's screen.</p>
                         </div>
                     </div>
 
@@ -914,10 +914,10 @@
                         <table class="table table-dark-custom align-middle">
                             <thead>
                                 <tr>
-                                    <th style="width: 150px;">তারিখ ও সময়</th>
-                                    <th style="width: 140px;">সতর্কতার ধরণ</th>
-                                    <th>প্রসেস</th>
-                                    <th>মেসেজের বিবরণ</th>
+                                    <th style="width: 150px;">Date & Time</th>
+                                    <th style="width: 140px;">Alert Type</th>
+                                    <th>Process</th>
+                                    <th>Message Description</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -929,13 +929,13 @@
                                     </td>
                                     <td>
                                         {% if alert.alert_type == 'limit_warning' %}
-                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">৫ মিনিট বাকি</span>
+                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">5 mins remaining</span>
                                         {% elif alert.alert_type == 'limit_exceeded' %}
-                                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-2 py-1 rounded-pill">সময় শেষ</span>
+                                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-2 py-1 rounded-pill">Limit Reached</span>
                                         {% elif alert.alert_type == 'study_mode_block' %}
-                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">পড়ার সময়</span>
+                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">Study Mode</span>
                                         {% elif alert.alert_type == 'emergency_lock' %}
-                                            <span class="badge bg-danger text-white px-2 py-1 rounded-pill">প্যারেন্ট লক</span>
+                                            <span class="badge bg-danger text-white px-2 py-1 rounded-pill">Parental Lock</span>
                                         {% else %}
                                             <span class="badge bg-secondary px-2 py-1 rounded-pill">{{ alert.alert_type }}</span>
                                         {% endif %}
@@ -950,7 +950,7 @@
                     {% else %}
                     <div class="text-center py-5 text-secondary">
                         <i class="fa-regular fa-bell-slash fs-1 mb-3 opacity-50"></i>
-                        <p class="mb-0">কোনো সতর্কতা বা ভায়োলেশনের রেকর্ড নেই। সবকিছু নিয়ম অনুযায়ী চলছে।</p>
+                        <p class="mb-0">No security alerts or violations recorded today. Device is running within safe limits.</p>
                     </div>
                     {% endif %}
                 </div>
@@ -962,38 +962,38 @@
                     <div class="col-lg-6">
                         <div class="card-custom p-4">
                             <h5 class="fw-bold mb-3 d-flex align-items-center text-dark">
-                                <i class="fa-solid fa-clock me-2" style="color: var(--accent-yellow);"></i> পড়ার সময় নির্ধারণ (Study Hours Schedule)
+                            <i class="fa-solid fa-clock me-2" style="color: var(--accent-yellow);"></i> Study Hours Schedule
                             </h5>
-                            <p class="small text-secondary mb-4">এই সময়ের মধ্যে ল্যাপটপে স্বয়ংক্রিয়ভাবে গেম এবং চ্যাট অ্যাপ ব্লক হয়ে যাবে।</p>
+                            <p class="small text-secondary mb-4">Gaming and chat applications will automatically be blocked on the laptop during these designated hours.</p>
 
                             <form id="settingsForm" onsubmit="handleSettingsSubmit(event)">
                                 <div class="row g-3 mb-3">
                                     <div class="col-6">
-                                        <label class="form-label small text-secondary">পড়া শুরু (ঘণ্টা: 0-23)</label>
+                                    <label class="form-label small text-secondary">Study Start (Hour: 0-23)</label>
                                         <div class="input-group">
                                             <input type="number" name="study_start_hour" class="form-control form-control-dark" value="{{ settings.study_start_hour or '19' }}" min="0" max="23" required>
-                                            <span class="input-group-text bg-light border border-slate-200 text-secondary">টা (যেমন: 19 = 7 PM)</span>
+                                        <span class="input-group-text bg-light border border-slate-200 text-secondary">:00 (e.g., 19 = 7 PM)</span>
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <label class="form-label small text-secondary">পড়া শেষ (ঘণ্টা: 0-23)</label>
+                                    <label class="form-label small text-secondary">Study End (Hour: 0-23)</label>
                                         <div class="input-group">
                                             <input type="number" name="study_end_hour" class="form-control form-control-dark" value="{{ settings.study_end_hour or '22' }}" min="0" max="23" required>
-                                            <span class="input-group-text bg-light border border-slate-200 text-secondary">টা (যেমন: 22 = 10 PM)</span>
+                                        <span class="input-group-text bg-light border border-slate-200 text-secondary">:00 (e.g., 22 = 10 PM)</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="mb-4">
-                                    <label class="form-label small text-secondary">দৈনিক মোট স্ক্রিন টাইম কোটা (মিনিট)</label>
-                                    <div class="input-group">
+                                <label class="form-label small text-secondary">Days of Week</label>
+                                <input type="text" class="form-control form-control-dark" value="Every day (Monday - Sunday)" readonly>
                                         <input type="number" name="daily_total_limit_minutes" class="form-control form-control-dark" value="{{ settings.daily_total_limit_minutes or '240' }}" min="30" max="1440" required>
-                                        <span class="input-group-text bg-light border border-slate-200 text-secondary">মিনিট (২৪০ মি. = ৪ ঘণ্টা)</span>
+                                        <span class="input-group-text bg-light border border-slate-200 text-secondary">mins (240 mins = 4 hours)</span>
                                     </div>
-                                </div>
+                                <small class="text-secondary">Set to 0 for unlimited daily screen time.</small>
 
                                 <button type="submit" class="btn btn-yellow rounded-pill px-4">
-                                    <i class="fa-solid fa-check me-1"></i> সেটিংস সংরক্ষণ করুন
+                                    <i class="fa-solid fa-check me-1"></i> Save Settings
                                 </button>
                             </form>
                         </div>
@@ -1002,30 +1002,30 @@
                     <div class="col-lg-6">
                         <div class="card-custom p-4">
                             <h5 class="fw-bold mb-3 d-flex align-items-center text-dark">
-                                <i class="fa-solid fa-circle-info me-2 text-dark"></i> ডিভাইস ও সিস্টেম ইনফরমেশন
+                            <i class="fa-solid fa-circle-info me-2 text-dark"></i> Device & System Information
                             </h5>
                             <div class="list-group list-group-flush bg-transparent">
                                 <div class="list-group-item bg-transparent text-secondary d-flex justify-content-between border-slate-200 px-0">
-                                    <span>ডিভাইস নাম</span>
+                                <span>Device Name</span>
                                     <strong class="text-dark">{{ device_name }}</strong>
                                 </div>
                                 <div class="list-group-item bg-transparent text-secondary d-flex justify-content-between border-slate-200 px-0">
-                                    <span>অ্যাসাইন করা ব্যবহারকারী</span>
+                                <span>Assigned Child</span>
                                     <strong class="text-dark">{{ assigned_child }}</strong>
                                 </div>
                                 <div class="list-group-item bg-transparent text-secondary d-flex justify-content-between border-slate-200 px-0">
-                                    <span>আইডল ডিটেকশন</span>
-                                    <strong class="text-dark">৩ মিনিট পর অটো-পজ</strong>
+                                <span>Idle Detection</span>
+                                <strong class="text-dark">Auto-pauses after 3 mins</strong>
                                 </div>
                                 <div class="list-group-item bg-transparent text-secondary d-flex justify-content-between border-slate-200 px-0">
-                                    <span>ডাটাবেস কানেকশন</span>
+                                <span>Database Connection</span>
                                     <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50">PostgreSQL 16 Connected</span>
                                 </div>
                             </div>
 
                             <div class="alert alert-light border border-slate-200 mt-4 mb-0 small text-secondary">
                                 <i class="fa-solid fa-shield-halved me-2" style="color: var(--accent-yellow);"></i>
-                                অভিভাবক ড্যাশবোর্ড মোবাইল অথবা লোকাল নেটওয়ার্কের যে কোনো ডিভাইস থেকে <code>http://[Your-PC-IP]:8000</code> দিয়ে অ্যাক্সেস করা যাবে।
+                Parental Control Dashboard can also be accessed from mobile or any device on your local network via <code>http://[Your-PC-IP]:8000</code>.
                             </div>
                         </div>
                     </div>
@@ -1042,44 +1042,44 @@
             <div class="modal-content modal-content-dark">
                 <form method="POST" action="/api/rules/save" onsubmit="handleRuleSubmit(event, this)">
                     <div class="modal-header border-slate-200">
-                        <h5 class="modal-title fw-bold text-dark">নতুন অ্যাপ বা গেমের রুল যোগ করুন</h5>
+                    <h5 class="modal-title fw-bold text-dark">Add New Application or Game Rule</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label small text-secondary">অ্যাপ বা গেমের সহজ নাম</label>
-                            <input type="text" name="friendly_name" class="form-control form-control-dark" placeholder="যেমন: Roblox, Minecraft বা Discord" required>
+                            <label class="form-label small text-secondary">Friendly App / Game Name</label>
+                            <input type="text" name="friendly_name" class="form-control form-control-dark" placeholder="e.g., Roblox, Minecraft, or Discord" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small text-secondary">প্রসেস ফাইল নাম (.exe সহ)</label>
-                            <input type="text" name="process_name" class="form-control form-control-dark" placeholder="যেমন: robloxplayerbeta.exe বা discord.exe" required>
+                            <label class="form-label small text-secondary">Process File Name (with .exe)</label>
+                            <input type="text" name="process_name" class="form-control form-control-dark" placeholder="e.g., robloxplayerbeta.exe or discord.exe" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small text-secondary">ক্যাটাগরি</label>
+                            <label class="form-label small text-secondary">Category</label>
                             <select name="category_name" class="form-select form-select-dark">
-                                <option value="Gaming" selected>Gaming (গেম)</option>
-                                <option value="Education/Study">Education/Study (পড়াশোনা)</option>
-                                <option value="Browsing/Video">Browsing/Video (ভিডিও ও ব্রাউজিং)</option>
-                                <option value="Social Media">Social Media (চ্যাট ও সোশ্যাল)</option>
-                                <option value="Other">Other (অন্যান্য)</option>
+                                <option value="Gaming" selected>Gaming</option>
+                                <option value="Education/Study">Education/Study</option>
+                                <option value="Browsing/Video">Browsing/Video</option>
+                                <option value="Social Media">Social Media</option>
+                                <option value="Other">Other</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small text-secondary">দৈনিক সময়সীমা (মিনিট)</label>
+                            <label class="form-label small text-secondary">Daily Limit (mins)</label>
                             <div class="input-group">
                                 <input type="number" name="daily_limit_minutes" class="form-control form-control-dark" value="60" min="0">
-                                <span class="input-group-text bg-light border border-slate-200 text-secondary">মিনিট</span>
+                                <span class="input-group-text bg-light border border-slate-200 text-secondary">mins</span>
                             </div>
-                            <small class="text-secondary">0 দিলে কোনো সময়সীমা থাকবে না।</small>
+                            <small class="text-secondary">Set to 0 for unlimited daily usage.</small>
                         </div>
                         <div class="form-check form-switch mb-3">
                             <input class="form-check-input" type="checkbox" name="is_blocked" value="true" id="modalBlock">
-                            <label class="form-check-label text-dark" for="modalBlock">এই অ্যাপটি পুরোপুরি ব্লক রাখুন</label>
+                            <label class="form-check-label text-dark" for="modalBlock">Permanently block this application</label>
                         </div>
                     </div>
                     <div class="modal-footer border-slate-200">
-                        <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">বাতিল</button>
-                        <button type="submit" class="btn btn-yellow rounded-pill px-4">সংরক্ষণ করুন</button>
+                        <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-yellow rounded-pill px-4">Save Rule</button>
                     </div>
                 </form>
             </div>
@@ -1096,8 +1096,8 @@
                             <i class="fa-solid fa-globe fs-5"></i>
                         </div>
                         <div>
-                            <h5 class="modal-title fw-bold text-dark mb-0" id="worldwideLanguageModalLabel">বিশ্বের ১৮০+ দেশ ও ভাষা (180+ Countries & Languages)</h5>
-                            <small class="text-secondary">যেকোনো দেশ বা ভাষা নির্বাচন করলে ড্যাশবোর্ড তাৎক্ষণিকভাবে অনুবাদ হবে</small>
+                            <h5 class="modal-title fw-bold text-dark mb-0" id="worldwideLanguageModalLabel">180+ Worldwide Countries & Languages</h5>
+                            <small class="text-secondary">Select any country or language to instantly translate the dashboard</small>
                         </div>
                     </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1110,13 +1110,13 @@
                                 <span class="input-group-text bg-light border border-slate-200 text-secondary">
                                     <i class="fa-solid fa-magnifying-glass"></i>
                                 </span>
-                                <input type="text" id="countrySearchInput" class="form-control form-control-dark" placeholder="দেশ বা ভাষার নাম লিখুন (Search country, flag or language)..." oninput="filterCountryList()">
+                                <input type="text" id="countrySearchInput" class="form-control form-control-dark" placeholder="Search country, flag or language..." oninput="filterCountryList()">
                             </div>
                         </div>
                         <div class="col-md-5 d-flex justify-content-md-end gap-2 flex-wrap">
-                            <button type="button" class="btn btn-outline-yellow btn-sm rounded-pill px-3" onclick="switchLanguage('bn')">🇧🇩 বাংলা (Bangla)</button>
+                            <button type="button" class="btn btn-outline-yellow btn-sm rounded-pill px-3" onclick="switchLanguage('en')">🇺🇸 English</button>
                             <button type="button" class="btn btn-outline-white btn-sm rounded-pill px-3" onclick="switchLanguage('en')">🇺🇸 English</button>
-                            <span class="badge bg-light text-secondary border border-slate-200 px-3 py-2 rounded-pill" id="countryCountBadge">185 টি দেশ</span>
+                            <span class="badge bg-light text-secondary border border-slate-200 px-3 py-2 rounded-pill" id="countryCountBadge">185 Countries</span>
                         </div>
                     </div>
 
@@ -1126,7 +1126,7 @@
                     </div>
                 </div>
                 <div class="modal-footer border-slate-200 py-2">
-                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">বন্ধ করুন (Close)</button>
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -1155,7 +1155,7 @@
         const usagePieChart = new Chart(pieCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Gaming (গেম)', 'Study (পড়া)', 'Browsing (ভিডিও)', 'Other (অন্যান্য)'],
+                labels: ['Gaming', 'Study', 'Browsing/Media', 'Other'],
                 datasets: [{
                     data: totalSec === 0 ? [0, 0, 0, 1] : [gamingSec, studySec, browsingSec, otherSec],
                     backgroundColor: totalSec === 0 ? ['#e2e8f0', '#e2e8f0', '#e2e8f0', '#cbd5e1'] : ['#ef233c', '#f59e0b', '#0f172a', '#94a3b8'],
@@ -1191,19 +1191,19 @@
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Study (পড়া)',
+                        label: 'Study & Productivity',
                         data: studyMins,
                         backgroundColor: '#f59e0b',
                         borderRadius: 6
                     },
                     {
-                        label: 'Gaming (গেম)',
+                        label: 'Gaming',
                         data: gamingMins,
                         backgroundColor: '#ef233c',
                         borderRadius: 6
                     },
                     {
-                        label: 'Total Screen Time (মোট)',
+                        label: 'Total Screen Time',
                         data: totalMins,
                         backgroundColor: 'rgba(15, 23, 42, 0.7)',
                         borderRadius: 6
@@ -1241,11 +1241,11 @@
                 const res = await fetch('/api/study-mode/toggle', { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
-                    showNotification(data.study_mode_active ? 'স্টাডি মোড সক্রিয় করা হয়েছে!' : 'স্টাডি মোড বন্ধ করা হয়েছে।');
+                    showNotification(data.study_mode_active ? 'Study Mode activated!' : 'Study Mode disabled.');
                     setTimeout(() => location.reload(), 800);
                 }
             } catch (err) {
-                showNotification('স্টাডি মোড পরিবর্তন ব্যর্থ হয়েছে: ' + err);
+                showNotification('Failed to toggle Study Mode: ' + err);
             }
         }
 
@@ -1254,11 +1254,11 @@
                 const res = await fetch('/api/emergency-lock/toggle', { method: 'POST' });
                 const data = await res.json();
                 if (data.success) {
-                    showNotification(data.emergency_lock ? 'ল্যাপটপ জরুরি ভিত্তিতে লক করা হয়েছে!' : 'ল্যাপটপ আনলক করা হয়েছে।');
+                    showNotification(data.emergency_lock ? 'Device locked successfully!' : 'Device unlocked.');
                     setTimeout(() => location.reload(), 800);
                 }
             } catch (err) {
-                showNotification('লক কমান্ড পরিবর্তন ব্যর্থ হয়েছে: ' + err);
+                showNotification('Failed to change lock state: ' + err);
             }
         }
 
@@ -1272,27 +1272,27 @@
                 const res = await fetch('/api/rules/save', { method: 'POST', body: formData });
                 const data = await res.json();
                 if (data.success) {
-                    showNotification('রুলস সফলভাবে আপডেট হয়েছে!');
+                    showNotification('Rules updated successfully!');
                     setTimeout(() => location.reload(), 800);
                 }
             } catch (err) {
-                showNotification('রুলস সেভ ব্যর্থ হয়েছে: ' + err);
+                showNotification('Failed to save rule: ' + err);
             }
         }
 
         async function deleteRule(processName) {
-            if (!confirm(`আপনি কি নিশ্চিত যে '${processName}' এর রুলটি মুছে ফেলতে চান?`)) return;
+            if (!confirm(`Are you sure you want to delete the rule for '${processName}'?`)) return;
             const formData = new FormData();
             formData.append('process_name', processName);
             try {
                 const res = await fetch('/api/rules/delete', { method: 'POST', body: formData });
                 const data = await res.json();
                 if (data.success) {
-                    showNotification('রুলটি মুছে ফেলা হয়েছে।');
+                    showNotification('Rule deleted successfully.');
                     setTimeout(() => location.reload(), 800);
                 }
             } catch (err) {
-                showNotification('মুছে ফেলতে সমস্যা হয়েছে: ' + err);
+                showNotification('Failed to delete rule: ' + err);
             }
         }
 
@@ -1304,11 +1304,11 @@
                 const res = await fetch('/api/settings/update', { method: 'POST', body: formData });
                 const data = await res.json();
                 if (data.success) {
-                    showNotification('শিডিউল ও সেটিংস সফলভাবে সংরক্ষিত হয়েছে!');
+                    showNotification('Schedule & settings saved successfully!');
                     setTimeout(() => location.reload(), 800);
                 }
             } catch (err) {
-                showNotification('সেটিংস আপডেট ব্যর্থ হয়েছে: ' + err);
+                showNotification('Failed to update settings: ' + err);
             }
         }
 
@@ -1321,18 +1321,18 @@
                     document.getElementById('liveAppName').innerText = data.current_app || 'None';
                     document.getElementById('liveAppTitle').innerText = data.current_title || '';
                     document.getElementById('liveAppCategory').innerText = data.current_category || 'Other';
-                    document.getElementById('lastSeenText').innerText = 'সর্বশেষ রেকর্ড: ' + (data.last_activity_time || 'N/A');
+                    document.getElementById('lastSeenText').innerText = 'Last Activity: ' + (data.last_activity_time || 'N/A');
 
                     const pulse = document.getElementById('pulseDot');
                     const onlineBadge = document.getElementById('onlineBadge');
                     if (data.online) {
                         pulse.className = 'pulse-live me-2';
                         onlineBadge.className = 'badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill';
-                        onlineBadge.innerText = 'অনলাইন (সক্রিয়)';
+                        onlineBadge.innerText = 'Online (Active)';
                     } else {
                         pulse.className = 'pulse-offline me-2';
                         onlineBadge.className = 'badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50 px-2 py-1 rounded-pill';
-                        onlineBadge.innerText = 'অফলাইন';
+                        onlineBadge.innerText = 'Offline';
                     }
                 }
             } catch (e) {
@@ -1395,7 +1395,7 @@
 
         // 180+ Worldwide Countries & Languages Database
         const ALL_COUNTRIES = [
-            { name: "Bangladesh", native: "বাংলাদেশ", flag: "🇧🇩", lang: "bn", langName: "বাংলা (Bengali)" },
+            { name: "Bangladesh", native: "Bangladesh", flag: "🇧🇩", lang: "bn", langName: "Bengali" },
             { name: "United States", native: "USA", flag: "🇺🇸", lang: "en", langName: "English" },
             { name: "United Kingdom", native: "UK", flag: "🇬🇧", lang: "en", langName: "English" },
             { name: "Canada", native: "Canada", flag: "🇨🇦", lang: "en", langName: "English / French" },
@@ -1587,7 +1587,7 @@
             `).join('');
 
             const badge = document.getElementById('countryCountBadge');
-            if (badge) badge.innerText = `${list.length} টি দেশ`;
+            if (badge) badge.innerText = `${list.length} Countries`;
         }
 
         function filterCountryList() {
@@ -1614,7 +1614,7 @@
                 if (modal) modal.hide();
             }
 
-            showNotification(`${countryName} ভাষা নির্বাচন করা হয়েছে...`);
+            showNotification(`${countryName} language selected...`);
             switchLanguage(lang);
         }
 

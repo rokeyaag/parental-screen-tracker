@@ -53,22 +53,22 @@ export default function RulesScreen() {
       });
       loadRules();
     } catch (e) {
-      Alert.alert('ত্রুটি', 'পরিবর্তন সংরক্ষণ করা যায়নি: ' + e.message);
+      Alert.alert('Error', 'Failed to save changes: ' + e.message);
     }
   };
 
   const handleDeleteRule = (pname) => {
-    Alert.alert('মুছে ফেলুন', `'${pname}' রুলটি মুছে ফেলতে চান?`, [
-      { text: 'বাতিল', style: 'cancel' },
+    Alert.alert('Delete Rule', `Delete the rule for '${pname}'?`, [
+      { text: 'Cancel', style: 'cancel' },
       {
-        text: 'মুছুন',
+        text: 'Delete',
         style: 'destructive',
         onPress: async () => {
           try {
             await api.deleteRule(pname);
             loadRules();
           } catch (e) {
-            Alert.alert('ত্রুটি', e.message);
+            Alert.alert('Error', e.message);
           }
         },
       },
@@ -77,7 +77,7 @@ export default function RulesScreen() {
 
   const handleCreateRule = async () => {
     if (!processName.trim()) {
-      Alert.alert('সতর্কতা', 'প্রসেস ফাইল নাম (.exe) প্রয়োজন');
+      Alert.alert('Warning', 'Process file name (.exe) is required');
       return;
     }
     setSaving(true);
@@ -95,9 +95,9 @@ export default function RulesScreen() {
       setLimitMins('45');
       setIsBlocked(false);
       loadRules();
-      Alert.alert('সফল', 'নতুন অ্যাপ রুল সংরক্ষিত হয়েছে!');
+      Alert.alert('Success', 'App rule saved successfully!');
     } catch (e) {
-      Alert.alert('ত্রুটি', e.message);
+      Alert.alert('Error', e.message);
     } finally {
       setSaving(false);
     }
@@ -129,15 +129,15 @@ export default function RulesScreen() {
 
       <View style={styles.cardFooter}>
         <View>
-          <Text style={styles.limitLabel}>দৈনিক সময়সীমা</Text>
+          <Text style={styles.limitLabel}>Daily Time Limit</Text>
           <Text style={styles.limitValue}>
-            {item.daily_limit_minutes > 0 ? `${item.daily_limit_minutes} মিনিট` : 'আনলিমিটেড'}
+            {item.daily_limit_minutes > 0 ? `${item.daily_limit_minutes} mins` : 'Unlimited'}
           </Text>
         </View>
 
         <View style={styles.actionsRow}>
           <View style={styles.switchWrapper}>
-            <Text style={styles.blockLabel}>ব্লক:</Text>
+            <Text style={styles.blockLabel}>Block:</Text>
             <Switch
               value={item.is_blocked}
               onValueChange={(val) => handleToggleBlock(item, val)}
@@ -150,7 +150,7 @@ export default function RulesScreen() {
             style={styles.deleteBtn}
             onPress={() => handleDeleteRule(item.process_name)}
           >
-            <Text style={styles.deleteBtnText}>মুছুন</Text>
+            <Text style={styles.deleteBtnText}>Delete</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -161,9 +161,9 @@ export default function RulesScreen() {
     <View style={styles.container}>
       {/* Header + Add button */}
       <View style={styles.topBar}>
-        <Text style={styles.screenTitle}>অ্যাপ ও গেম রুলস ({rules.length})</Text>
+        <Text style={styles.screenTitle}>App & Game Rules ({rules.length})</Text>
         <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
-          <Text style={styles.addBtnText}>+ নতুন অ্যাপ</Text>
+          <Text style={styles.addBtnText}>+ Add Rule</Text>
         </TouchableOpacity>
       </View>
 
@@ -182,26 +182,26 @@ export default function RulesScreen() {
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>নতুন রুল যোগ করুন</Text>
+            <Text style={styles.modalTitle}>Add New Rule</Text>
 
-            <Text style={styles.inputLabel}>অ্যাপ বা গেমের নাম</Text>
+            <Text style={styles.inputLabel}>App / Game Friendly Name</Text>
             <TextInput
               style={styles.input}
-              placeholder="যেমন: Roblox বা Minecraft"
+              placeholder="e.g., Roblox or Minecraft"
               value={friendlyName}
               onChangeText={setFriendlyName}
             />
 
-            <Text style={styles.inputLabel}>প্রসেস ফাইল নাম (.exe সহ)</Text>
+            <Text style={styles.inputLabel}>Process File Name (.exe)</Text>
             <TextInput
               style={styles.input}
-              placeholder="যেমন: robloxplayerbeta.exe"
+              placeholder="e.g., robloxplayerbeta.exe"
               value={processName}
               onChangeText={setProcessName}
               autoCapitalize="none"
             />
 
-            <Text style={styles.inputLabel}>দৈনিক সময়সীমা (মিনিট)</Text>
+            <Text style={styles.inputLabel}>Daily Time Limit (mins)</Text>
             <TextInput
               style={styles.input}
               placeholder="45"
@@ -211,7 +211,7 @@ export default function RulesScreen() {
             />
 
             <View style={styles.modalSwitchRow}>
-              <Text style={styles.inputLabel}>স্থায়ীভাবে ব্লক রাখুন</Text>
+              <Text style={styles.inputLabel}>Permanently Block App</Text>
               <Switch
                 value={isBlocked}
                 onValueChange={setIsBlocked}
@@ -225,7 +225,7 @@ export default function RulesScreen() {
                 onPress={() => setModalVisible(false)}
                 disabled={saving}
               >
-                <Text style={styles.cancelBtnText}>বাতিল</Text>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -236,7 +236,7 @@ export default function RulesScreen() {
                 {saving ? (
                   <ActivityIndicator size="small" color="#000" />
                 ) : (
-                  <Text style={styles.saveBtnText}>সংরক্ষণ করুন</Text>
+                  <Text style={styles.saveBtnText}>Save Rule</Text>
                 )}
               </TouchableOpacity>
             </View>

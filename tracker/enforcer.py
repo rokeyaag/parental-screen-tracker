@@ -143,8 +143,8 @@ class Enforcer:
             now = time.time()
             if now - _last_blocked_time.get("emergency_lock", 0) > 15:
                 _last_blocked_time["emergency_lock"] = now
-                msg = "অভিভাবক সাময়িকভাবে ল্যাপটপের ব্যবহার বন্ধ রেখেছেন।"
-                show_alert_window("প্যারেন্টাল লক (Parental Lock)", msg)
+                msg = "Parent has temporarily locked device access."
+                show_alert_window("Parental Lock", msg)
                 self._log_alert(pname, "emergency_lock", msg)
             return False, "Emergency Lock"
 
@@ -168,8 +168,8 @@ class Enforcer:
             now = time.time()
             if now - _last_blocked_time.get(pname, 0) > 15:
                 _last_blocked_time[pname] = now
-                msg = f"'{rule.get('friendly_name', pname)}' অভিভাবক ব্লক করে রেখেছেন।"
-                show_alert_window("অ্যাপটি ব্লক করা (App Blocked)", msg)
+                msg = f"'{rule.get('friendly_name', pname)}' has been blocked by your parent."
+                show_alert_window("App Blocked", msg)
                 self._log_alert(pname, "app_blocked", msg)
             return False, "Rule: Explicitly Blocked"
 
@@ -179,8 +179,8 @@ class Enforcer:
             now = time.time()
             if now - _last_blocked_time.get(pname, 0) > 15:
                 _last_blocked_time[pname] = now
-                msg = f"এখন পড়ার সময়! গেম ও চ্যাট অ্যাপ ({rule.get('friendly_name', pname) if rule else pname}) এখন বন্ধ থাকবে।"
-                show_alert_window("পড়ার সময়! (Study Mode Active)", msg)
+                msg = f"Study Mode is active! Entertainment and gaming apps ({rule.get('friendly_name', pname) if rule else pname}) are restricted during study hours."
+                show_alert_window("Study Mode Active", msg)
                 self._log_alert(pname, "study_mode_block", msg)
             return False, "Study Mode Active"
 
@@ -196,8 +196,8 @@ class Enforcer:
             if 0 < remaining_seconds <= 300 and warn_key not in _warned_today:
                 _warned_today[warn_key] = True
                 remaining_mins = max(1, int(remaining_seconds / 60))
-                msg = f"'{rule.get('friendly_name', pname)}' ব্যবহারের আর মাত্র {remaining_mins} মিনিট বাকি আছে।"
-                show_alert_window("সময় শেষ হয়ে আসছে! (Time Warning)", msg)
+                msg = f"Only {remaining_mins} minutes remaining today for '{rule.get('friendly_name', pname)}'."
+                show_alert_window("Time Limit Warning", msg)
                 self._log_alert(pname, "limit_warning", msg)
 
             # Limit Exceeded
@@ -206,8 +206,8 @@ class Enforcer:
                 now = time.time()
                 if now - _last_blocked_time.get(pname, 0) > 15:
                     _last_blocked_time[pname] = now
-                    msg = f"আজকের জন্য '{rule.get('friendly_name', pname)}'-এর অনুমোদিত {daily_limit_mins} মিনিট শেষ হয়েছে।"
-                    show_alert_window("আজকের সময় শেষ! (Daily Limit Reached)", msg)
+                    msg = f"Daily time limit of {daily_limit_mins} minutes reached for '{rule.get('friendly_name', pname)}'."
+                    show_alert_window("Daily Limit Reached", msg)
                     self._log_alert(pname, "limit_exceeded", msg)
                 return False, f"Daily limit of {daily_limit_mins} mins reached"
 
@@ -254,8 +254,8 @@ class Enforcer:
                             now = time.time()
                             if now - _last_blocked_time.get(pname, 0) > 15:
                                 _last_blocked_time[pname] = now
-                                msg = "অভিভাবক সাময়িকভাবে ল্যাপটপের ব্যবহার বন্ধ রেখেছেন।"
-                                show_alert_window("প্যারেন্টাল লক (Parental Lock)", msg)
+                                msg = "Parent has temporarily locked device usage."
+                                show_alert_window("Parental Lock Active", msg)
                                 self._log_alert(pname, "emergency_lock", msg)
                             continue
 
@@ -265,8 +265,8 @@ class Enforcer:
                         now = time.time()
                         if now - _last_blocked_time.get(pname, 0) > 15:
                             _last_blocked_time[pname] = now
-                            msg = f"'{rule.get('friendly_name', pname)}' অভিভাবক ব্লক করে রেখেছেন।"
-                            show_alert_window("অ্যাপটি ব্লক করা (App Blocked)", msg)
+                            msg = f"'{rule.get('friendly_name', pname)}' has been blocked by your parent."
+                            show_alert_window("App Blocked", msg)
                             self._log_alert(pname, "app_blocked", msg)
                         continue
 
@@ -276,8 +276,8 @@ class Enforcer:
                         now = time.time()
                         if now - _last_blocked_time.get(pname, 0) > 15:
                             _last_blocked_time[pname] = now
-                            msg = f"এখন পড়ার সময়! গেম ও চ্যাট অ্যাপ ({rule.get('friendly_name', pname) if rule else pname}) এখন বন্ধ থাকবে।"
-                            show_alert_window("পড়ার সময়! (Study Mode Active)", msg)
+                            msg = f"Study Mode is active! Gaming and chat apps ({rule.get('friendly_name', pname) if rule else pname}) are currently paused."
+                            show_alert_window("Study Mode Active", msg)
                             self._log_alert(pname, "study_mode_block", msg)
                         continue
 
@@ -289,8 +289,8 @@ class Enforcer:
                             now = time.time()
                             if now - _last_blocked_time.get(pname, 0) > 15:
                                 _last_blocked_time[pname] = now
-                                msg = f"আজকের জন্য '{rule.get('friendly_name', pname)}'-এর অনুমোদিত {daily_limit_mins} মিনিট শেষ হয়েছে।"
-                                show_alert_window("আজকের সময় শেষ! (Daily Limit Reached)", msg)
+                                msg = f"Daily time limit of {daily_limit_mins} minutes for '{rule.get('friendly_name', pname)}' has been reached."
+                                show_alert_window("Daily Limit Reached", msg)
                                 self._log_alert(pname, "limit_exceeded", msg)
                             continue
 

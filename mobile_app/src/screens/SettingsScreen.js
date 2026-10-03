@@ -42,9 +42,9 @@ export default function SettingsScreen() {
     setApiBaseUrl(serverUrl.trim());
     try {
       const data = await api.getDashboard();
-      Alert.alert('সংযুক্ত সফল!', `সার্ভার রেসপন্স করেছে: ডিভাইস ${data.device?.name || 'অনলাইন'}`);
+      Alert.alert('Connected Successfully!', `Server responded: Device ${data.device?.name || 'Online'}`);
     } catch (e) {
-      Alert.alert('কানেকশন ব্যর্থ', `সার্ভারে পৌঁছানো যায়নি: ${e.message}\nল্যাপটপের আইপি (যেমন http://192.168.1.100:8000) সঠিক কিনা চেক করুন।`);
+      Alert.alert('Connection Failed', `Cannot reach server: ${e.message}\nPlease verify laptop IP (e.g. http://192.168.1.100:8000).`);
     } finally {
       setTesting(false);
     }
@@ -58,9 +58,9 @@ export default function SettingsScreen() {
         study_end_hour: parseInt(studyEnd, 10),
         daily_total_limit_minutes: parseInt(dailyQuota, 10),
       });
-      Alert.alert('সফল', 'পড়ার শিডিউল ও সেটিংস সফলভাবে আপডেট হয়েছে!');
+      Alert.alert('Success', 'Study schedule and settings updated successfully!');
     } catch (e) {
-      Alert.alert('ত্রুটি', e.message);
+      Alert.alert('Error', e.message);
     } finally {
       setLoading(false);
     }
@@ -69,15 +69,15 @@ export default function SettingsScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>শিডিউল ও সার্ভার সেটিংস</Text>
-        <Text style={styles.subTitle}>মোবাইল অ্যাপ ও ড্যাশবোর্ড ব্যাকএন্ড কনফিগারেশন</Text>
+        <Text style={styles.title}>Schedule & Server Settings</Text>
+        <Text style={styles.subTitle}>Mobile App & Backend Configuration</Text>
       </View>
 
       {/* Backend API Server Connection */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>সার্ভার কানেকশন (API URL)</Text>
+        <Text style={styles.cardTitle}>Server Connection (API URL)</Text>
         <Text style={styles.label}>
-          একই ওয়াইফাই বা ইন্টারনেটের মাধ্যমে ড্যাশবোর্ড অ্যাক্সেস করতে ল্যাপটপের আইপি বা ক্লাউড ইউআরএল দিন:
+          Enter your laptop IP or cloud URL to connect over local Wi-Fi or internet:
         </Text>
         <TextInput
           style={styles.input}
@@ -91,19 +91,19 @@ export default function SettingsScreen() {
           {testing ? (
             <ActivityIndicator size="small" color="#000" />
           ) : (
-            <Text style={styles.testBtnText}>সার্ভার টেস্ট করুন</Text>
+            <Text style={styles.testBtnText}>Test Server</Text>
           )}
         </TouchableOpacity>
       </View>
 
       {/* Study Hours Schedule */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>পড়ার সময় নির্ধারণ (Study Hours)</Text>
-        <Text style={styles.label}>এই সময়ের মধ্যে গেম ও সোশ্যাল অ্যাপ স্বয়ংক্রিয়ভাবে ব্লক থাকবে।</Text>
+        <Text style={styles.cardTitle}>Study Hours Schedule</Text>
+        <Text style={styles.label}>Gaming and social apps are automatically blocked during this period.</Text>
 
         <View style={styles.row}>
           <View style={{ flex: 1, marginRight: 8 }}>
-            <Text style={styles.inputLabel}>শুরু (ঘণ্টা: 0-23)</Text>
+            <Text style={styles.inputLabel}>Start (Hour: 0-23)</Text>
             <TextInput
               style={styles.input}
               value={studyStart}
@@ -113,7 +113,7 @@ export default function SettingsScreen() {
             />
           </View>
           <View style={{ flex: 1, marginLeft: 8 }}>
-            <Text style={styles.inputLabel}>শেষ (ঘণ্টা: 0-23)</Text>
+            <Text style={styles.inputLabel}>End (Hour: 0-23)</Text>
             <TextInput
               style={styles.input}
               value={studyEnd}
@@ -124,37 +124,37 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <Text style={styles.inputLabel}>দৈনিক মোট স্ক্রিন টাইম কোটা (মিনিট)</Text>
+        <Text style={styles.inputLabel}>Daily Screen Time Quota (mins)</Text>
         <TextInput
           style={styles.input}
           value={dailyQuota}
           onChangeText={setDailyQuota}
           keyboardType="numeric"
-          placeholder="240 (4 ঘণ্টা)"
+          placeholder="240 (4 hours)"
         />
 
         <TouchableOpacity style={styles.saveBtn} onPress={handleSaveSettings} disabled={loading}>
           {loading ? (
             <ActivityIndicator size="small" color="#000" />
           ) : (
-            <Text style={styles.saveBtnText}>সেটিংস সংরক্ষণ করুন</Text>
+            <Text style={styles.saveBtnText}>Save Settings</Text>
           )}
         </TouchableOpacity>
       </View>
 
       {/* Info Card */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>সিস্টেম তথ্য</Text>
+        <Text style={styles.cardTitle}>System Information</Text>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>ডাটাবেস:</Text>
+          <Text style={styles.infoLabel}>Database:</Text>
           <Text style={styles.infoVal}>PostgreSQL 16</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>অফলাইন বাফারিং:</Text>
-          <Text style={styles.infoVal}>সক্রিয় (SQLite Cache)</Text>
+          <Text style={styles.infoLabel}>Offline Buffering:</Text>
+          <Text style={styles.infoVal}>Active (SQLite Cache)</Text>
         </View>
         <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>উইন্ডোজ ক্লায়েন্ট:</Text>
+          <Text style={styles.infoLabel}>Windows Client:</Text>
           <Text style={styles.infoVal}>ParentalScreenTracker.exe</Text>
         </View>
       </View>

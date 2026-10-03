@@ -45,7 +45,7 @@ def test_full_pipeline():
     print("   Rule updated successfully: Roblox daily limit set to 45 mins.")
 
     print("[7] Testing Alert Logging & Retrieval...")
-    database.log_alert(device_id, "robloxplayerbeta.exe", "limit_warning", "৫ মিনিট বাকি আছে।")
+    database.log_alert(device_id, "robloxplayerbeta.exe", "limit_warning", "5 minutes remaining.")
     alerts = database.get_recent_alerts(device_id, limit=5)
     assert len(alerts) > 0, "Alerts list should not be empty"
     print(f"   Alert logged and retrieved: {alerts[0]['message']}")

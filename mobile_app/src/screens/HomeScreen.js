@@ -46,12 +46,12 @@ export default function HomeScreen() {
     try {
       const res = await api.toggleStudyMode();
       Alert.alert(
-        'স্টাডি মোড',
-        res.study_mode_active ? 'স্টাডি মোড চালু হয়েছে!' : 'স্টাডি মোড বন্ধ হয়েছে।'
+        'Study Mode',
+        res.study_mode_active ? 'Study Mode activated!' : 'Study Mode disabled.'
       );
       loadData();
     } catch (e) {
-      Alert.alert('ত্রুটি', 'কমান্ড পাঠানো যায়নি: ' + e.message);
+      Alert.alert('Error', 'Failed to send command: ' + e.message);
     } finally {
       setActionLoading(false);
     }
@@ -62,12 +62,12 @@ export default function HomeScreen() {
     try {
       const res = await api.toggleEmergencyLock();
       Alert.alert(
-        'ইমার্জেন্সি লক',
-        res.emergency_lock ? 'ল্যাপটপ স্ক্রিন লক করা হয়েছে!' : 'ল্যাপটপ আনলক করা হয়েছে।'
+        'Emergency Lock',
+        res.emergency_lock ? 'Laptop screen locked!' : 'Laptop unlocked.'
       );
       loadData();
     } catch (e) {
-      Alert.alert('ত্রুটি', 'কমান্ড পাঠানো যায়নি: ' + e.message);
+      Alert.alert('Error', 'Failed to send command: ' + e.message);
     } finally {
       setActionLoading(false);
     }
@@ -77,7 +77,7 @@ export default function HomeScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={colors.accentYellow} />
-        <Text style={styles.loadingText}>ড্যাশবোর্ড লোড হচ্ছে...</Text>
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
       </View>
     );
   }
@@ -97,9 +97,9 @@ export default function HomeScreen() {
       {/* Header Info */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>প্যারেন্টাল মনিটর</Text>
+          <Text style={styles.headerTitle}>Parental Monitor</Text>
           <Text style={styles.headerSub}>
-            ডিভাইস: {device.name} • {device.assigned_child}
+            Device: {device.name} • {device.assigned_child}
           </Text>
         </View>
         <View
@@ -120,7 +120,7 @@ export default function HomeScreen() {
               { color: device.online ? colors.onlineGreen : colors.offlineRed }
             ]}
           >
-            {device.online ? 'অনলাইন' : 'অফলাইন'}
+            {device.online ? 'Online' : 'Offline'}
           </Text>
         </View>
       </View>
@@ -128,7 +128,7 @@ export default function HomeScreen() {
       {/* Live Active App Ticker */}
       <View style={styles.liveCard}>
         <View style={styles.liveHeaderRow}>
-          <Text style={styles.liveLabel}>লাইভ চলমান অ্যাপ্লিকেশন</Text>
+          <Text style={styles.liveLabel}>Currently Active Application</Text>
           <View style={styles.badgeBrowsing}>
             <Text style={styles.badgeBrowsingText}>{device.current_category}</Text>
           </View>
@@ -157,7 +157,7 @@ export default function HomeScreen() {
               { color: settings.study_mode_active ? '#000000' : colors.accentYellowDark }
             ]}
           >
-            {settings.study_mode_active ? 'স্টাডি মোড: চালু' : 'স্টাডি মোড: বন্ধ'}
+            {settings.study_mode_active ? 'Study Mode: Active' : 'Study Mode: Off'}
           </Text>
         </TouchableOpacity>
 
@@ -175,7 +175,7 @@ export default function HomeScreen() {
               { color: settings.emergency_lock ? '#ffffff' : colors.accentRed }
             ]}
           >
-            {settings.emergency_lock ? 'লক: সক্রিয়' : 'স্ক্রিন লক করুন'}
+            {settings.emergency_lock ? 'Lock: Active' : 'Lock Screen'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -184,7 +184,7 @@ export default function HomeScreen() {
       <View style={styles.metricsGrid}>
         {/* Total Screen Time */}
         <View style={[styles.metricCard, styles.borderWhite]}>
-          <Text style={styles.metricLabel}>আজকের মোট সময়</Text>
+          <Text style={styles.metricLabel}>Today's Total Time</Text>
           <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
             {summary.total_formatted}
           </Text>
@@ -196,21 +196,21 @@ export default function HomeScreen() {
               ]}
             />
           </View>
-          <Text style={styles.metricSub}>কোটা: {summary.daily_limit_mins} মি. ({summary.total_pct}%)</Text>
+          <Text style={styles.metricSub}>Limit: {summary.daily_limit_mins} mins ({summary.total_pct}%)</Text>
         </View>
 
         {/* Gaming Time */}
         <View style={[styles.metricCard, styles.borderRed]}>
-          <Text style={styles.metricLabel}>গেম খেলা (Gaming)</Text>
+          <Text style={styles.metricLabel}>Gaming Usage</Text>
           <Text style={[styles.metricValue, { color: colors.accentRed }]}>
             {summary.gaming_formatted}
           </Text>
-          <Text style={styles.metricSub}>লিমিট শেষ হলে বন্ধ</Text>
+          <Text style={styles.metricSub}>Auto-block on limit</Text>
         </View>
 
         {/* Study Time */}
         <View style={[styles.metricCard, styles.borderYellow]}>
-          <Text style={styles.metricLabel}>পড়াশোনা ও কোডিং</Text>
+          <Text style={styles.metricLabel}>Study & Productivity</Text>
           <Text style={[styles.metricValue, { color: colors.accentYellowDark }]}>
             {summary.study_formatted}
           </Text>
@@ -219,7 +219,7 @@ export default function HomeScreen() {
 
         {/* Browsing Time */}
         <View style={[styles.metricCard, styles.borderWhite]}>
-          <Text style={styles.metricLabel}>ব্রাউজিং ও মিডিয়া</Text>
+          <Text style={styles.metricLabel}>Browsing & Media</Text>
           <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
             {summary.browsing_formatted}
           </Text>
@@ -229,7 +229,7 @@ export default function HomeScreen() {
 
       {/* Today's App Breakdown List */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>আজকের ব্যবহৃত অ্যাপসমূহ ({apps.length})</Text>
+        <Text style={styles.sectionTitle}>Active Applications ({apps.length})</Text>
       </View>
 
       {apps.map((app, index) => (
@@ -242,10 +242,10 @@ export default function HomeScreen() {
             <Text style={styles.appRowTime}>{app.time_formatted}</Text>
             {app.limit_mins > 0 ? (
               <Text style={[styles.appRowLimit, app.pct >= 100 && { color: colors.accentRed }]}>
-                {app.pct}% / {app.limit_mins} মি.
+                {app.pct}% / {app.limit_mins} mins
               </Text>
             ) : (
-              <Text style={styles.appRowLimit}>আনলিমিটেড</Text>
+              <Text style={styles.appRowLimit}>Unlimited</Text>
             )}
           </View>
         </View>

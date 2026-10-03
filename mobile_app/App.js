@@ -10,11 +10,11 @@ import AlertsScreen from './src/screens/AlertsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
 const TABS = [
-  { key: 'home', label: 'ওভারভিউ', icon: '📊' },
-  { key: 'rules', label: 'রুলস', icon: '⚙️' },
-  { key: 'timeline', label: 'টাইমলাইন', icon: '⏱️' },
-  { key: 'alerts', label: 'অ্যালার্ট', icon: '🔔' },
-  { key: 'settings', label: 'সেটিংস', icon: '🛠️' },
+  { key: 'home', label: 'Overview', icon: '📊' },
+  { key: 'rules', label: 'Rules', icon: '⚙️' },
+  { key: 'timeline', label: 'Timeline', icon: '⏱️' },
+  { key: 'alerts', label: 'Alerts', icon: '🔔' },
+  { key: 'settings', label: 'Settings', icon: '🛠️' },
 ];
 
 export default function App() {

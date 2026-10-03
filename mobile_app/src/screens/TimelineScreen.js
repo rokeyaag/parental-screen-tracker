@@ -60,8 +60,8 @@ export default function TimelineScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>লাইভ অ্যাক্টিভিটি টাইমলাইন</Text>
-        <Text style={styles.subTitle}>উইন্ডোজ স্ক্রিনের প্রতিটি কার্যকলাপের বিস্তারিত লগ</Text>
+        <Text style={styles.title}>Live Activity Timeline</Text>
+        <Text style={styles.subTitle}>Detailed chronological log of opened windows and apps</Text>
       </View>
 
       {loading && !refreshing ? (

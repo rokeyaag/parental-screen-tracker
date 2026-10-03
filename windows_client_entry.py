@@ -93,12 +93,12 @@ def main():
             install_autostart()
             show_popup(
                 "Parental Screen Tracker",
-                "Parental Screen Tracker সফলভাবে উইন্ডোজ স্টার্টআপে ইনস্টল করা হয়েছে এবং ব্যাকগ্রাউন্ডে সক্রিয় থাকবে।"
+                "Parental Screen Tracker has been successfully installed to Windows Startup and will run in the background."
             )
             return
         elif any(a in ("--uninstall", "-u", "uninstall") for a in args):
             uninstall_autostart()
-            show_popup("Parental Screen Tracker", "সফলভাবে আনইনস্টল করা হয়েছে।")
+            show_popup("Parental Screen Tracker", "Parental Screen Tracker has been uninstalled successfully.")
             return
 
         is_silent = "--silent" in args or "-s" in args
@@ -110,7 +110,7 @@ def main():
             if not is_silent:
                 show_popup(
                     "Parental Screen Tracker",
-                    "Parental Screen Tracker ইতিমধ্যে আপনার ব্যাকগ্রাউন্ডে সক্রিয় রয়েছে এবং কাজ করছে।"
+                    "Parental Screen Tracker is already running and active in the background."
                 )
             return
 
@@ -123,10 +123,10 @@ def main():
                 target=show_popup,
                 args=(
                     "Parental Screen Tracker",
-                    "Parental Screen Tracker সফলভাবে ব্যাকগ্রাউন্ডে চালু হয়েছে!\n\n"
-                    "✓ শিশুদের স্ক্রিন ও অ্যাপ ব্যবহার স্বয়ংক্রিয়ভাবে ট্র্যাক হচ্ছে।\n"
-                    "✓ উইন্ডোজ স্টার্টআপে স্বয়ংক্রিয়ভাবে সক্রিয় থাকবে।\n"
-                    "✓ এটি ব্যাকগ্রাউন্ডে সম্পূর্ণ সাইলেন্টলি চলবে।"
+                    "Parental Screen Tracker is now running in the background!\n\n"
+                    "✓ Child screen time and app monitoring is active.\n"
+                    "✓ Registered to Windows Startup for automatic execution.\n"
+                    "✓ Running silently in the background."
                 ),
                 daemon=True
             ).start()
@@ -136,7 +136,7 @@ def main():
         client.start()
     except Exception as e:
         print(f"[Fatal Error] {e}")
-        show_popup("Parental Screen Tracker Error", f"সিস্টেমে সমস্যা হয়েছে: {e}", is_error=True)
+        show_popup("Parental Screen Tracker Error", f"System error occurred: {e}", is_error=True)
 
 if __name__ == "__main__":
     main()
