@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parental Control & Screen Activity Tracker</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            /* Clean Professional Light Theme Tokens */
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-card-hover: #ffffff;
+            --border-color: #e2e8f0;
+            --border-accent-yellow: #f59e0b;
+            --border-accent-red: #ef233c;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-muted-custom: #94a3b8;
+            --accent-red: #ef233c;
+            --accent-red-hover: #dc2626;
+            --accent-yellow: #f59e0b;
+            --accent-yellow-hover: #d97706;
+            --accent-white: #ffffff;
+            --accent-black: #0f172a;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(239, 35, 60, 0.04) 0px, transparent 40%),
+                radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.05) 0px, transparent 40%),
+                radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.02) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', 'Hind Siliguri', sans-serif;
+            min-height: 100vh;
+            letter-spacing: -0.01em;
+        }
+
+        /* Top Bar */
+        .navbar-premium {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            border-bottom: 2px solid var(--accent-red);
+            box-shadow: 0 2px 14px rgba(15, 23, 42, 0.05);
+        }
+
+        /* Clean Elevated Cards */
+        .card-custom {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 4px 16px -2px rgba(15, 23, 42, 0.04);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s, border-color 0.25s;
+        }
+        .card-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -3px rgba(15, 23, 42, 0.08);
+            border-color: #cbd5e1;
+        }
+
+        .stat-card-glow {
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card-glow::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+        .glow-red::before { background: linear-gradient(90deg, #ef233c, #f87171); }
+        .glow-yellow::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .glow-white::before { background: linear-gradient(90deg, #0f172a, #64748b); }
+
+        .stat-icon-box {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+        }
+
+        .pulse-live {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--accent-yellow);
+            box-shadow: 0 0 0 rgba(245, 158, 11, 0.4);
+            animation: pulse-yellow 2s infinite;
+        }
+        @keyframes pulse-yellow {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
+        .pulse-offline {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--accent-red);
+        }
+
+        /* Nav Pills / Tabs */
+        .nav-pills-custom .nav-link {
+            color: #475569;
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            font-weight: 600;
+            padding: 9px 20px;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+        .nav-pills-custom .nav-link.active {
+            background-color: #0f172a !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            border-color: #0f172a;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+        }
+        .nav-pills-custom .nav-link:hover:not(.active) {
+            color: #0f172a;
+            border-color: #cbd5e1;
+            background: #f1f5f9;
+        }
+
+        /* Table styling */
+        .table-dark-custom {
+            --bs-table-bg: transparent;
+            --bs-table-color: var(--text-primary);
+            --bs-table-border-color: #e2e8f0;
+        }
+        .table-dark-custom th {
+            color: #0f172a;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 2px solid #cbd5e1;
+            background: #f8fafc;
+            padding: 12px 14px;
+        }
+        .table-dark-custom td {
+            padding: 14px;
+            color: #1e293b;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .table-dark-custom tbody tr:hover td {
+            background: #f8fafc;
+        }
+
+        code {
+            background: #f1f5f9;
+            color: #0f172a;
+            padding: 2px 7px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.84em;
+            font-weight: 600;
+        }
+
+        /* Badges */
+        .badge-cat-gaming { 
+            background: #ffe4e6; 
+            color: #e11d48; 
+            border: 1px solid #fecdd3; 
+            font-weight: 600;
+        }
+        .badge-cat-study { 
+            background: #fef3c7; 
+            color: #b45309; 
+            border: 1px solid #fde68a; 
+            font-weight: 600;
+        }
+        .badge-cat-browsing { 
+            background: #f1f5f9; 
+            color: #334155; 
+            border: 1px solid #e2e8f0; 
+            font-weight: 600;
+        }
+        .badge-cat-social { 
+            background: #ffe4e6; 
+            color: #be123c; 
+            border: 1px solid #fecdd3; 
+            font-weight: 600;
+        }
+        .badge-cat-other { 
+            background: #f8fafc; 
+            color: #64748b; 
+            border: 1px solid #e2e8f0; 
+            font-weight: 500;
+        }
+
+        /* Buttons matching Light theme */
+        .btn-yellow, .btn-primary {
+            background-color: var(--accent-yellow) !important;
+            border-color: var(--accent-yellow) !important;
+            color: #000000 !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+            transition: all 0.2s ease;
+        }
+        .btn-yellow:hover, .btn-primary:hover {
+            background-color: var(--accent-yellow-hover) !important;
+            border-color: var(--accent-yellow-hover) !important;
+            color: #000000 !important;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+        }
+        .btn-outline-yellow, .btn-outline-primary {
+            color: #d97706 !important;
+            border: 1.5px solid var(--accent-yellow) !important;
+            background: transparent !important;
+            font-weight: 700 !important;
+        }
+        .btn-outline-yellow:hover, .btn-outline-primary:hover {
+            background-color: var(--accent-yellow) !important;
+            color: #000000 !important;
+        }
+
+        .btn-red, .btn-danger {
+            background-color: var(--accent-red) !important;
+            border-color: var(--accent-red) !important;
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            box-shadow: 0 2px 8px rgba(239, 35, 60, 0.25);
+            transition: all 0.2s ease;
+        }
+        .btn-red:hover, .btn-danger:hover {
+            background-color: var(--accent-red-hover) !important;
+            border-color: var(--accent-red-hover) !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px rgba(239, 35, 60, 0.35);
+        }
+        .btn-outline-red, .btn-outline-danger {
+            color: var(--accent-red) !important;
+            border: 1.5px solid var(--accent-red) !important;
+            background: transparent !important;
+            font-weight: 700 !important;
+        }
+        .btn-outline-red:hover, .btn-outline-danger:hover {
+            background-color: var(--accent-red) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-outline-white {
+            color: #0f172a !important;
+            border: 1.5px solid #cbd5e1 !important;
+            background: #ffffff !important;
+            font-weight: 600 !important;
+        }
+        .btn-outline-white:hover {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+
+        .form-control-dark, .form-select-dark {
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+            color: #0f172a;
+            border-radius: 8px;
+        }
+        .form-control-dark:focus, .form-select-dark:focus {
+            background-color: #ffffff;
+            border-color: var(--accent-yellow);
+            color: #0f172a;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+
+        .modal-content-dark {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            color: #0f172a;
+            border-radius: 16px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.15);
+        }
+
+        .progress-thin {
+            height: 6px;
+            background-color: #e2e8f0;
+            border-radius: 3px;
+        }
+
+        /* Toast container */
+        .toast-container {
+            z-index: 9999;
+        }
+
+        /* Language Switcher matching screenshot */
+        .lang-switcher-container {
+            display: inline-flex;
+            align-items: center;
+        }
+        .lang-toggle-box {
+            display: inline-flex;
+            align-items: center;
+            background: #f1f5f9;
+            border-bottom: 2px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 1px;
+        }
+        .lang-btn {
+            background: transparent;
+            border: 2px solid transparent;
+            color: #64748b;
+            font-size: 0.88rem;
+            font-weight: 600;
+            padding: 4px 14px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            border-radius: 4px;
+            line-height: 1.4;
+        }
+        .lang-btn:hover {
+            color: #0f172a;
+        }
+        .lang-btn.active {
+            color: #000000;
+            border: 2px solid var(--accent-yellow);
+            background: var(--accent-yellow);
+            font-weight: 700;
+        }
+        .lang-menu-btn {
+            border-radius: 6px;
+            padding: 4px 10px;
+            border: 1px solid #cbd5e1;
+            background: #f1f5f9;
+            color: #0f172a;
+            display: inline-flex;
+            align-items: center;
+        }
+        .lang-menu-btn:hover, .lang-menu-btn:focus {
+            background: #e2e8f0;
+            color: #000000;
+            border-color: #94a3b8;
+        }
+
+        /* 180+ Country Cards Grid Styling */
+        .country-card-btn {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px 12px;
+            text-align: left;
+            width: 100%;
+            color: #0f172a;
+            transition: all 0.15s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .country-card-btn:hover {
+            background: #fef3c7;
+            border-color: var(--accent-yellow);
+            transform: translateY(-2px);
+        }
+        .country-card-btn.active {
+            border-color: var(--accent-yellow);
+            background: #fde68a;
+        }
+        .country-flag {
+            font-size: 1.5rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .country-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .country-lang {
+            font-size: 0.72rem;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #google_translate_element {
+            display: none !important;
+        }
+        .goog-te-gadget {
+            display: none !important;
+        }
+        .goog-te-banner-frame.skiptranslate, .goog-te-banner-frame {
+            display: none !important;
+        }
+        body {
+            top: 0px !important;
+        }
+        .skiptranslate > iframe {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toast Notification Anchor -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast align-items-center text-dark bg-white border border-slate-200 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">
+                    নোটিফিকেশন
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-premium sticky-top py-3">
+        <div class="container-xl">
+            <a class="navbar-brand d-flex align-items-center text-dark text-decoration-none" href="/">
+                <div class="me-3 p-2 rounded-3" style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4);">
+                    <i class="fa-solid fa-shield-cat fs-4" style="color: var(--accent-yellow);"></i>
+                </div>
+                <div>
+                    <div class="fw-bold fs-5 tracking-wide text-dark">প্যারেন্টাল কন্ট্রোল ড্যাশবোর্ড</div>
+                    <div class="small text-secondary" style="font-size: 0.75rem;">Windows Screen Time & Activity Monitor (PostgreSQL 16)</div>
+                </div>
+            </a>
+
+            <div class="d-flex align-items-center gap-3">
+                <!-- Device Status Pill -->
+                <div class="d-none d-md-flex align-items-center px-3 py-1 rounded-pill bg-light border border-slate-200" id="liveDeviceBadge">
+                    <span class="{% if live_status.online %}pulse-live{% else %}pulse-offline{% endif %} me-2" id="pulseDot"></span>
+                    <span class="small fw-semibold text-secondary me-1">ডিভাইস:</span>
+                    <span class="small fw-bold text-dark me-2">{{ device_name }}</span>
+                    <span class="badge bg-secondary bg-opacity-25 text-dark rounded-pill">{{ assigned_child }}</span>
+                </div>
+
+                <!-- Language Switcher Bar (Bangla / English & Worldwide) -->
+                <div class="lang-switcher-container">
+                    <div class="lang-toggle-box">
+                        <button type="button" class="lang-btn active" id="langTabBn" onclick="switchLanguage('bn')">
+                            Bangla
+                        </button>
+                        <button type="button" class="lang-btn" id="langTabEn" onclick="switchLanguage('en')">
+                            English
+                        </button>
+                    </div>
+
+                    <!-- Worldwide Languages Modal Trigger (180+ Countries) -->
+                    <button class="btn lang-menu-btn ms-2" type="button" data-bs-toggle="modal" data-bs-target="#worldwideLanguageModal" title="বিশ্বের ১৮০+ দেশ ও ভাষা (180+ Worldwide Countries & Languages)">
+                        <i class="fa-solid fa-bars fs-6"></i>
+                    </button>
+                </div>
+
+                <!-- Hidden Google Translate Element -->
+                <div id="google_translate_element" style="display:none;"></div>
+
+                <!-- Download Windows EXE Installer -->
+                <a href="/api/download/tracker.exe" class="btn btn-red btn-sm rounded-pill px-3 shadow-sm" title="উইন্ডোজ ট্র্যাকার সেটআপ (.exe) ডাউনলোড করুন">
+                    <i class="fa-brands fa-windows me-1"></i> ডাউনলোড .exe
+                </a>
+
+                <!-- Export CSV Button -->
+                <a href="/api/export/csv" class="btn btn-outline-white btn-sm rounded-pill px-3" title="অ্যাক্টিভিটি রিপোর্ট ডাউনলোড করুন">
+                    <i class="fa-solid fa-file-arrow-down me-1" style="color: var(--accent-yellow);"></i> CSV রিপোর্ট
+                </a>
+
+                <!-- Manual Refresh Button -->
+                <button onclick="refreshDashboardData()" class="btn btn-outline-yellow btn-sm rounded-pill px-3">
+                    <i class="fa-solid fa-arrows-rotate me-1" id="refreshSpinner"></i> রিফ্রেশ
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container-xl my-4">
+
+        <!-- Live Status Ticker Banner -->
+        <div class="card-custom p-3 mb-4 border-start border-4" style="border-left: 4px solid var(--accent-yellow) !important;">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="p-2 rounded-circle bg-light border border-slate-200">
+                        <i class="fa-solid fa-laptop fs-5" style="color: var(--accent-yellow);"></i>
+                    </div>
+                    <div>
+                        <div class="small text-secondary fw-semibold">লাইভ উইন্ডো ট্র্যাকিং (Real-time Status)</div>
+                        <div class="fw-bold fs-6" id="liveAppDisplay">
+                            <span class="badge badge-cat-browsing me-2" id="liveAppCategory">{{ live_status.current_category }}</span>
+                            <span class="text-dark fw-bold" id="liveAppName">{{ live_status.current_app }}</span>
+                            <span class="text-secondary small fw-normal ms-2" id="liveAppTitle">{{ live_status.current_title }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <span class="small text-secondary" id="lastSeenText">সর্বশেষ রেকর্ড: {{ live_status.last_activity_time or 'N/A' }}</span>
+                    <span class="badge {% if live_status.online %}bg-warning bg-opacity-25 text-warning border-warning{% else %}bg-secondary bg-opacity-25 text-secondary border-secondary{% endif %} border border-opacity-50 px-2 py-1 rounded-pill" id="onlineBadge">
+                        {% if live_status.online %}অনলাইন (সক্রিয়){% else %}অফলাইন{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Emergency & Study Mode Toggles -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card-custom p-3 d-flex flex-row align-items-center justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fa-solid fa-book-open-reader fs-5" style="color: var(--accent-yellow);"></i>
+                            <h6 class="fw-bold mb-0 text-dark">স্টাডি মোড (Study Mode)</h6>
+                        </div>
+                        <p class="small text-secondary mb-0">চালু থাকলে পড়ার সময়ে গেম ও সোশ্যাল মিডিয়া স্বয়ংক্রিয়ভাবে ব্লক থাকবে।</p>
+                    </div>
+                    <button id="studyBtn" onclick="toggleStudyMode()" class="btn {% if study_mode %}btn-yellow{% else %}btn-outline-yellow{% endif %} px-4 py-2 rounded-pill fw-bold">
+                        <i class="fa-solid fa-power-off me-1"></i> {% if study_mode %}চালু আছে{% else %}বন্ধ আছে{% endif %}
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card-custom p-3 d-flex flex-row align-items-center justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="fa-solid fa-lock fs-5" style="color: var(--accent-red);"></i>
+                            <h6 class="fw-bold mb-0 text-dark">ইমার্জেন্সি স্ক্রিন লক (Emergency Lock)</h6>
+                        </div>
+                        <p class="small text-secondary mb-0">তাৎক্ষণিকভাবে যে কোনো সময় কম্পিউটারের স্ক্রিন বন্ধ বা লক রাখতে।</p>
+                    </div>
+                    <button id="lockBtn" onclick="toggleEmergencyLock()" class="btn {% if emergency_lock %}btn-red{% else %}btn-outline-red{% endif %} px-4 py-2 rounded-pill fw-bold">
+                        <i class="fa-solid fa-lock me-1"></i> {% if emergency_lock %}লক করা আছে{% else %}আনলক{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics Cards -->
+        <div class="row g-3 mb-4">
+            <!-- Total Screen Time -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="card-custom p-3 stat-card-glow glow-white h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-secondary fw-semibold">আজকের মোট স্ক্রিন টাইম</span>
+                        <div class="stat-icon-box" style="background: #f1f5f9; color: #0f172a;">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold mb-2 text-dark" id="statTotal">{{ summary.total }}</h3>
+                    <div class="d-flex justify-content-between small text-secondary mb-1">
+                        <span>দৈনিক কোটা: {{ summary.daily_limit_mins }} মিনিট</span>
+                        <span class="fw-bold text-dark">{{ summary.total_pct }}%</span>
+                    </div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar {% if summary.total_pct >= 100 %}bg-danger{% elif summary.total_pct >= 80 %}bg-warning{% else %}bg-warning{% endif %}" style="width: {{ summary.total_pct }}%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gaming Time -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="card-custom p-3 stat-card-glow glow-red h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-secondary fw-semibold">গেম খেলা (Gaming)</span>
+                        <div class="stat-icon-box" style="background: rgba(239, 35, 60, 0.12); color: var(--accent-red);">
+                            <i class="fa-solid fa-gamepad"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold mb-1" style="color: var(--accent-red);" id="statGaming">{{ summary.gaming }}</h3>
+                    <span class="small text-secondary">সীমা অতিক্রম করলে স্বয়ংক্রিয় টার্মিনেশন</span>
+                </div>
+            </div>
+
+            <!-- Study Time -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="card-custom p-3 stat-card-glow glow-yellow h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-secondary fw-semibold">পড়াশোনা ও প্রোগ্রামিং</span>
+                        <div class="stat-icon-box" style="background: rgba(245, 158, 11, 0.12); color: var(--accent-yellow);">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold mb-1" style="color: var(--accent-yellow);" id="statStudy">{{ summary.study }}</h3>
+                    <span class="small text-secondary">VS Code, Zoom, বই, ডকস ইত্যাদি</span>
+                </div>
+            </div>
+
+            <!-- Browsing / Video -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="card-custom p-3 stat-card-glow glow-white h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small text-secondary fw-semibold">ব্রাউজিং ও মিডিয়া</span>
+                        <div class="stat-icon-box" style="background: #f1f5f9; color: #0f172a;">
+                            <i class="fa-solid fa-globe"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark" id="statBrowsing">{{ summary.browsing }}</h3>
+                    <span class="small text-secondary">Chrome, Edge, YouTube ও অন্যান্য</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs for Sections -->
+        <ul class="nav nav-pills nav-pills-custom mb-4 gap-2" id="dashboardTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-overview">
+                    <i class="fa-solid fa-chart-pie me-1"></i> ওভারভিউ ও চার্ট
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-rules">
+                    <i class="fa-solid fa-sliders me-1"></i> রুলস ও লিমিট নিয়ন্ত্রণ
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-timeline">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> লাইভ টাইমলাইন (Logs)
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-alerts">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> সতর্কতা হিস্ট্রি (Alerts)
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-settings">
+                    <i class="fa-solid fa-gear me-1"></i> শিডিউল ও সেটিংস
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="dashboardTabContent">
+            
+            <!-- TAB 1: OVERVIEW & CHARTS -->
+            <div class="tab-pane fade show active" id="tab-overview">
+                <div class="row g-4 mb-4">
+                    <!-- Donut Chart -->
+                    <div class="col-lg-5">
+                        <div class="card-custom p-4 h-100">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center text-dark">
+                                <i class="fa-solid fa-chart-pie me-2" style="color: var(--accent-yellow);"></i> আজকের কার্যকলাপের ভাগ (Activity Breakdown)
+                            </h5>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="usagePieChart"></canvas>
+                            </div>
+                            <div class="mt-4 pt-3 border-top border-slate-200 small text-secondary d-flex justify-content-between">
+                                <span>ডাটাবেস: <strong class="text-dark">PostgreSQL 16</strong></span>
+                                <span>সিঙ্ক ইন্টারভাল: <strong class="text-dark">15 সেকেন্ড</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 7-Day Weekly Trend Chart -->
+                    <div class="col-lg-7">
+                        <div class="card-custom p-4 h-100">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center text-dark">
+                                <i class="fa-solid fa-chart-simple me-2" style="color: var(--accent-yellow);"></i> বিগত ৭ দিনের স্ক্রিন টাইম ট্রেন্ড (Weekly Trend)
+                            </h5>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="weeklyBarChart"></canvas>
+                            </div>
+                            <div class="mt-4 pt-3 border-top border-slate-200 small text-secondary">
+                                প্রতিদিন মোট সময় ও গেম খেলার তুলনামূলক গ্রাফ
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Today's Apps Table -->
+                <div class="card-custom p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0 text-dark">
+                            <i class="fa-solid fa-list-check me-2" style="color: var(--accent-yellow);"></i> আজকে ব্যবহৃত অ্যাপসমূহ (Today's Apps)
+                        </h5>
+                        <span class="badge bg-light text-dark border border-slate-200 px-3 py-2 rounded-pill">
+                            {{ apps|length }} টি অ্যাপ সক্রিয়
+                        </span>
+                    </div>
+
+                    {% if apps %}
+                    <div class="table-responsive">
+                        <table class="table table-dark-custom align-middle">
+                            <thead>
+                                <tr>
+                                    <th>অ্যাপের নাম ও প্রসেস</th>
+                                    <th>ক্যাটাগরি</th>
+                                    <th>ব্যয়িত সময়</th>
+                                    <th>দৈনিক লিমিট ও প্রগ্রেস</th>
+                                    <th>বর্তমান স্ট্যাটাস</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for app in apps %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-dark">{{ app.name }}</div>
+                                        <div class="small text-secondary"><code>{{ app.process_name }}</code></div>
+                                    </td>
+                                    <td>
+                                        {% if app.category == 'Gaming' %}
+                                        <span class="badge badge-cat-gaming px-2 py-1 rounded-pill">Gaming</span>
+                                        {% elif app.category == 'Education/Study' %}
+                                        <span class="badge badge-cat-study px-2 py-1 rounded-pill">Study</span>
+                                        {% elif app.category == 'Browsing/Video' %}
+                                        <span class="badge badge-cat-browsing px-2 py-1 rounded-pill">Browsing</span>
+                                        {% elif app.category == 'Social Media' %}
+                                        <span class="badge badge-cat-social px-2 py-1 rounded-pill">Social</span>
+                                        {% else %}
+                                        <span class="badge badge-cat-other px-2 py-1 rounded-pill">Other</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><strong class="text-dark">{{ app.time_str }}</strong></td>
+                                    <td style="min-width: 180px;">
+                                        {% if app.limit_mins > 0 %}
+                                            <div class="d-flex justify-content-between small text-secondary mb-1">
+                                                <span>{{ app.limit_mins }} মিনিট</span>
+                                                <span class="fw-bold text-dark">{{ app.pct }}%</span>
+                                            </div>
+                                            <div class="progress progress-thin">
+                                                <div class="progress-bar {% if app.pct >= 100 %}bg-danger{% elif app.pct >= 80 %}bg-warning{% else %}bg-warning{% endif %}" style="width: {{ app.pct }}%;"></div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-secondary small">আনলিমিটেড (কোনো লিমিট নেই)</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if app.is_blocked %}
+                                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-2 py-1 rounded-pill">ব্লকড</span>
+                                        {% elif app.pct >= 100 and app.limit_mins > 0 %}
+                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">সময় শেষ</span>
+                                        {% else %}
+                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">অনুমোদিত</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-secondary">
+                        <i class="fa-solid fa-chart-line fs-1 mb-3 opacity-50"></i>
+                        <p class="mb-0">আজকে এখনো কোনো অ্যাপের উল্লেখযোগ্য রেকর্ড নেই। ট্র্যাকার সক্রিয় রয়েছে।</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- TAB 2: RULES & LIMITS -->
+            <div class="tab-pane fade" id="tab-rules">
+                <div class="card-custom p-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                        <div>
+                            <h5 class="fw-bold mb-1 text-dark">
+                                <i class="fa-solid fa-sliders me-2" style="color: var(--accent-yellow);"></i> গেম ও অ্যাপের সময়সীমা নিয়ন্ত্রণ (Rules & Limits)
+                            </h5>
+                            <p class="small text-secondary mb-0">প্রতিটি অ্যাপের জন্য দৈনিক সর্বোচ্চ মিনিট নির্ধারণ করুন বা স্থায়ীভাবে ব্লক করে রাখুন।</p>
+                        </div>
+                        <button class="btn btn-yellow rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addRuleModal">
+                            <i class="fa-solid fa-plus me-1"></i> নতুন অ্যাপ যোগ করুন
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-dark-custom align-middle">
+                            <thead>
+                                <tr>
+                                    <th>অ্যাপের নাম (Friendly Name)</th>
+                                    <th>প্রসেস ফাইল (exe)</th>
+                                    <th>ক্যাটাগরি</th>
+                                    <th style="width: 170px;">দৈনিক লিমিট (মিনিট)</th>
+                                    <th style="width: 110px;" class="text-center">ব্লক রাখুন</th>
+                                    <th style="width: 130px;" class="text-center">অ্যাকশন</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rule in rules %}
+                                <tr>
+                                    <form method="POST" action="/api/rules/save" onsubmit="handleRuleSubmit(event, this)">
+                                        <td>
+                                            <input type="text" name="friendly_name" class="form-control form-control-dark form-control-sm" value="{{ rule.friendly_name }}">
+                                        </td>
+                                        <td>
+                                            <code>{{ rule.process_name }}</code>
+                                            <input type="hidden" name="process_name" value="{{ rule.process_name }}">
+                                        </td>
+                                        <td>
+                                            <select name="category_name" class="form-select form-select-dark form-select-sm">
+                                                <option value="Gaming" {% if rule.category_name == 'Gaming' %}selected{% endif %}>Gaming</option>
+                                                <option value="Education/Study" {% if rule.category_name == 'Education/Study' %}selected{% endif %}>Education/Study</option>
+                                                <option value="Browsing/Video" {% if rule.category_name == 'Browsing/Video' %}selected{% endif %}>Browsing/Video</option>
+                                                <option value="Social Media" {% if rule.category_name == 'Social Media' %}selected{% endif %}>Social Media</option>
+                                                <option value="Other" {% if rule.category_name == 'Other' %}selected{% endif %}>Other</option>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" name="daily_limit_minutes" class="form-control form-control-dark" value="{{ rule.daily_limit_minutes }}" min="0" max="600">
+                                                <span class="input-group-text bg-light border border-slate-200 text-secondary">মিনিট</span>
+                                            </div>
+                                            <div class="text-secondary" style="font-size: 10px;">0 = আনলিমিটেড</div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="form-check form-switch d-inline-block">
+                                                <input class="form-check-input" type="checkbox" name="is_blocked" value="true" {% if rule.is_blocked %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="d-flex gap-1 justify-content-center">
+                                                <button type="submit" class="btn btn-outline-yellow btn-sm rounded-pill px-3" title="সংরক্ষণ">
+                                                    <i class="fa-solid fa-check"></i>
+                                                </button>
+                                                <button type="button" onclick="deleteRule('{{ rule.process_name }}')" class="btn btn-outline-red btn-sm rounded-pill px-2" title="মুছে ফেলুন">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </form>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: LIVE TIMELINE LOGS -->
+            <div class="tab-pane fade" id="tab-timeline">
+                <div class="card-custom p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1 text-dark">
+                                <i class="fa-solid fa-clock-rotate-left me-2" style="color: var(--accent-yellow);"></i> লাইভ অ্যাক্টিভিটি টাইমলাইন (Recent Logs)
+                            </h5>
+                            <p class="small text-secondary mb-0">উইন্ডোজ ট্র্যাকার কর্তৃক রেকর্ডকৃত সাম্প্রতিক উইন্ডো হিস্ট্রি।</p>
+                        </div>
+                        <button onclick="refreshDashboardData()" class="btn btn-outline-yellow btn-sm rounded-pill px-3">
+                            <i class="fa-solid fa-arrows-rotate me-1"></i> আপডেট
+                        </button>
+                    </div>
+
+                    {% if recent_logs %}
+                    <div class="table-responsive">
+                        <table class="table table-dark-custom align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 130px;">সময়</th>
+                                    <th>অ্যাপ্লিকেশনের নাম</th>
+                                    <th>ক্যাটাগরি</th>
+                                    <th>উইন্ডো টাইটেল / ডকুমেন্ট / ট্যাব</th>
+                                    <th style="width: 100px;">সময়কাল</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in recent_logs %}
+                                <tr>
+                                    <td class="text-secondary small"><code>{{ log.time_str }}</code></td>
+                                    <td>
+                                        <strong class="text-dark">{{ log.app_name }}</strong>
+                                        <div class="text-secondary small">{{ log.process_name }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-cat-{{ log.category_name.split('/')[0].lower() }} px-2 py-1 rounded-pill">
+                                             {{ log.category_name }}
+                                        </span>
+                                    </td>
+                                    <td class="text-dark small text-truncate" style="max-width: 320px;" title="{{ log.window_title }}">
+                                        {{ log.window_title }}
+                                    </td>
+                                    <td><span class="badge bg-light text-dark border border-slate-200 px-2 py-1 rounded-pill">+{{ log.duration_seconds }}s</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-secondary">
+                        <p>এখনো কোনো অ্যাক্টিভিটি লগ সংরক্ষিত হয়নি।</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- TAB 4: ALERTS & VIOLATIONS -->
+            <div class="tab-pane fade" id="tab-alerts">
+                <div class="card-custom p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1 text-dark">
+                                <i class="fa-solid fa-triangle-exclamation me-2" style="color: var(--accent-red);"></i> সতর্কতা ও ভায়োলেশন হিস্ট্রি (Alerts History)
+                            </h5>
+                            <p class="small text-secondary mb-0">বাচ্চাদের স্ক্রিনে যেসব পপআপ সতর্কতা বা ব্লকিং মেসেজ পাঠানো হয়েছে তার সম্পূর্ণ রেকর্ড।</p>
+                        </div>
+                    </div>
+
+                    {% if recent_alerts %}
+                    <div class="table-responsive">
+                        <table class="table table-dark-custom align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 150px;">তারিখ ও সময়</th>
+                                    <th style="width: 140px;">সতর্কতার ধরণ</th>
+                                    <th>প্রসেস</th>
+                                    <th>মেসেজের বিবরণ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alert in recent_alerts %}
+                                <tr>
+                                    <td class="text-secondary small">
+                                        <div>{{ alert.date_str }}</div>
+                                        <code>{{ alert.time_str }}</code>
+                                    </td>
+                                    <td>
+                                        {% if alert.alert_type == 'limit_warning' %}
+                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">৫ মিনিট বাকি</span>
+                                        {% elif alert.alert_type == 'limit_exceeded' %}
+                                            <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50 px-2 py-1 rounded-pill">সময় শেষ</span>
+                                        {% elif alert.alert_type == 'study_mode_block' %}
+                                            <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill">পড়ার সময়</span>
+                                        {% elif alert.alert_type == 'emergency_lock' %}
+                                            <span class="badge bg-danger text-white px-2 py-1 rounded-pill">প্যারেন্ট লক</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary px-2 py-1 rounded-pill">{{ alert.alert_type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><code>{{ alert.process_name }}</code></td>
+                                    <td class="text-dark">{{ alert.message }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5 text-secondary">
+                        <i class="fa-regular fa-bell-slash fs-1 mb-3 opacity-50"></i>
+                        <p class="mb-0">কোনো সতর্কতা বা ভায়োলেশনের রেকর্ড নেই। সবকিছু নিয়ম অনুযায়ী চলছে।</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- TAB 5: SETTINGS & SCHEDULE -->
+            <div class="tab-pane fade" id="tab-settings">
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card-custom p-4">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center text-dark">
+                                <i class="fa-solid fa-clock me-2" style="color: var(--accent-yellow);"></i> পড়ার সময় নির্ধারণ (Study Hours Schedule)
+                            </h5>
+                            <p class="small text-secondary mb-4">এই সময়ের মধ্যে ল্যাপটপে স্বয়ংক্রিয়ভাবে গেম এবং চ্যাট অ্যাপ ব্লক হয়ে যাবে।</p>
+
+                            <form id="settingsForm" onsubmit="handleSettingsSubmit(event)">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label small text-secondary">পড়া শুরু (ঘণ্টা: 0-23)</label>
+                                        <div class="input-group">
+                                            <input type="number" name="study_start_hour" class="form-control form-control-dark" value="{{ settings.study_start_hour or '19' }}" min="0" max="23" required>
+                                            <span class="input-group-text bg-light border border-slate-200 text-secondary">টা (যেমন: 19 = 7 PM)</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small text-secondary">পড়া শেষ (ঘণ্টা: 0-23)</label>
+                                        <div class="input-group">
+                                            <input type="number" name="study_end_hour" class="form-control form-control-dark" value="{{ settings.study_end_hour or '22' }}" min="0" max="23" required>
+                                            <span class="input-group-text bg-light border border-slate-200 text-secondary">টা (যেমন: 22 = 10 PM)</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label small text-secondary">দৈনিক মোট স্ক্রিন টাইম কোটা (মিনিট)</label>
+                                    <div class="input-group">
+                                        <input type="number" name="daily_total_limit_minutes" class="form-control form-control-dark" value="{{ settings.daily_total_limit_minutes or '240' }}" min="30" max="1440" required>
+                                        <span class="input-group-text bg-light border border-slate-200 text-secondary">মিনিট (২৪০ মি. = ৪ ঘণ্টা)</span>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-yellow rounded-pill px-4">
+                                    <i class="fa-solid fa-check me-1"></i> সেটিংস সংরক্ষণ করুন
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="card-custom p-4">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center text-dark">
+                                <i class="fa-solid fa-circle-info me-2 text-dark"></i> ডিভাইস ও সিস্টেম ইনফরমেশন
+                            </h5>
+                            <div class="list-group list-group-flush bg-transparent">
+                                <div class="list-group-item bg-transparent text-secondary d-flex justify-content-between border-slate-200 px-0">
+                                    <span>ডিভাইস নাম</span>
+                                    <strong class="text-dark">{{ device_name }}</strong>
+                                </div>
+                                <div class="list-group-item bg-transparent text-secondary d-flex justify-content-between border-slate-200 px-0">
+                                    <span>অ্যাসাইন করা ব্যবহারকারী</span>
+                                    <strong class="text-dark">{{ assigned_child }}</strong>
+                                </div>
+                                <div class="list-group-item bg-transparent text-secondary d-flex justify-content-between border-slate-200 px-0">
+                                    <span>আইডল ডিটেকশন</span>
+                                    <strong class="text-dark">৩ মিনিট পর অটো-পজ</strong>
+                                </div>
+                                <div class="list-group-item bg-transparent text-secondary d-flex justify-content-between border-slate-200 px-0">
+                                    <span>ডাটাবেস কানেকশন</span>
+                                    <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50">PostgreSQL 16 Connected</span>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-light border border-slate-200 mt-4 mb-0 small text-secondary">
+                                <i class="fa-solid fa-shield-halved me-2" style="color: var(--accent-yellow);"></i>
+                                অভিভাবক ড্যাশবোর্ড মোবাইল অথবা লোকাল নেটওয়ার্কের যে কোনো ডিভাইস থেকে <code>http://[Your-PC-IP]:8000</code> দিয়ে অ্যাক্সেস করা যাবে।
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Modal to Add New Custom Rule -->
+    <div class="modal fade" id="addRuleModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-dark">
+                <form method="POST" action="/api/rules/save" onsubmit="handleRuleSubmit(event, this)">
+                    <div class="modal-header border-slate-200">
+                        <h5 class="modal-title fw-bold text-dark">নতুন অ্যাপ বা গেমের রুল যোগ করুন</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label small text-secondary">অ্যাপ বা গেমের সহজ নাম</label>
+                            <input type="text" name="friendly_name" class="form-control form-control-dark" placeholder="যেমন: Roblox, Minecraft বা Discord" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-secondary">প্রসেস ফাইল নাম (.exe সহ)</label>
+                            <input type="text" name="process_name" class="form-control form-control-dark" placeholder="যেমন: robloxplayerbeta.exe বা discord.exe" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-secondary">ক্যাটাগরি</label>
+                            <select name="category_name" class="form-select form-select-dark">
+                                <option value="Gaming" selected>Gaming (গেম)</option>
+                                <option value="Education/Study">Education/Study (পড়াশোনা)</option>
+                                <option value="Browsing/Video">Browsing/Video (ভিডিও ও ব্রাউজিং)</option>
+                                <option value="Social Media">Social Media (চ্যাট ও সোশ্যাল)</option>
+                                <option value="Other">Other (অন্যান্য)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-secondary">দৈনিক সময়সীমা (মিনিট)</label>
+                            <div class="input-group">
+                                <input type="number" name="daily_limit_minutes" class="form-control form-control-dark" value="60" min="0">
+                                <span class="input-group-text bg-light border border-slate-200 text-secondary">মিনিট</span>
+                            </div>
+                            <small class="text-secondary">0 দিলে কোনো সময়সীমা থাকবে না।</small>
+                        </div>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" name="is_blocked" value="true" id="modalBlock">
+                            <label class="form-check-label text-dark" for="modalBlock">এই অ্যাপটি পুরোপুরি ব্লক রাখুন</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-slate-200">
+                        <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">বাতিল</button>
+                        <button type="submit" class="btn btn-yellow rounded-pill px-4">সংরক্ষণ করুন</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for 180+ Worldwide Countries and Languages -->
+    <div class="modal fade" id="worldwideLanguageModal" tabindex="-1" aria-labelledby="worldwideLanguageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+            <div class="modal-content modal-content-dark">
+                <div class="modal-header border-slate-200 py-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="p-2 rounded-circle" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow);">
+                            <i class="fa-solid fa-globe fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold text-dark mb-0" id="worldwideLanguageModalLabel">বিশ্বের ১৮০+ দেশ ও ভাষা (180+ Countries & Languages)</h5>
+                            <small class="text-secondary">যেকোনো দেশ বা ভাষা নির্বাচন করলে ড্যাশবোর্ড তাৎক্ষণিকভাবে অনুবাদ হবে</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Search & Quick Toggles Bar -->
+                    <div class="row g-3 mb-4 align-items-center">
+                        <div class="col-md-7">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border border-slate-200 text-secondary">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </span>
+                                <input type="text" id="countrySearchInput" class="form-control form-control-dark" placeholder="দেশ বা ভাষার নাম লিখুন (Search country, flag or language)..." oninput="filterCountryList()">
+                            </div>
+                        </div>
+                        <div class="col-md-5 d-flex justify-content-md-end gap-2 flex-wrap">
+                            <button type="button" class="btn btn-outline-yellow btn-sm rounded-pill px-3" onclick="switchLanguage('bn')">🇧🇩 বাংলা (Bangla)</button>
+                            <button type="button" class="btn btn-outline-white btn-sm rounded-pill px-3" onclick="switchLanguage('en')">🇺🇸 English</button>
+                            <span class="badge bg-light text-secondary border border-slate-200 px-3 py-2 rounded-pill" id="countryCountBadge">185 টি দেশ</span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Country Cards Grid -->
+                    <div class="row g-2" id="countryCardsContainer" style="max-height: 480px; overflow-y: auto;">
+                        <!-- Generated dynamically by JS -->
+                    </div>
+                </div>
+                <div class="modal-footer border-slate-200 py-2">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">বন্ধ করুন (Close)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Toast notification helper
+        function showNotification(msg) {
+            const toastEl = document.getElementById('liveToast');
+            document.getElementById('toastMessage').innerText = msg;
+            const toast = new bootstrap.Toast(toastEl, { delay: 3500 });
+            toast.show();
+        }
+
+        // 1. Pie Chart Initialization
+        const pieCtx = document.getElementById('usagePieChart').getContext('2d');
+        const gamingSec = {{ summary.gaming_seconds }};
+        const studySec = {{ summary.study_seconds }};
+        const browsingSec = {{ summary.browsing_seconds }};
+        const otherSec = {{ summary.other_seconds }};
+        const totalSec = {{ summary.total_seconds }};
+
+        const usagePieChart = new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Gaming (গেম)', 'Study (পড়া)', 'Browsing (ভিডিও)', 'Other (অন্যান্য)'],
+                datasets: [{
+                    data: totalSec === 0 ? [0, 0, 0, 1] : [gamingSec, studySec, browsingSec, otherSec],
+                    backgroundColor: totalSec === 0 ? ['#e2e8f0', '#e2e8f0', '#e2e8f0', '#cbd5e1'] : ['#ef233c', '#f59e0b', '#0f172a', '#94a3b8'],
+                    borderColor: '#ffffff',
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#0f172a', font: { size: 12, weight: '600' } }
+                    }
+                }
+            }
+        });
+
+        // 2. Weekly Trend Bar Chart Initialization
+        const weeklyCtx = document.getElementById('weeklyBarChart').getContext('2d');
+        const weeklyData = {{ weekly_trend | tojson }};
+
+        const labels = weeklyData.length > 0 ? weeklyData.map(d => d.day_name + ' (' + d.log_date.slice(5) + ')') : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const totalMins = weeklyData.length > 0 ? weeklyData.map(d => Math.round(d.total_seconds / 60)) : [0, 0, 0, 0, 0, 0, 0];
+        const gamingMins = weeklyData.length > 0 ? weeklyData.map(d => Math.round(d.gaming_seconds / 60)) : [0, 0, 0, 0, 0, 0, 0];
+        const studyMins = weeklyData.length > 0 ? weeklyData.map(d => Math.round(d.study_seconds / 60)) : [0, 0, 0, 0, 0, 0, 0];
+
+        const weeklyBarChart = new Chart(weeklyCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Study (পড়া)',
+                        data: studyMins,
+                        backgroundColor: '#f59e0b',
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Gaming (গেম)',
+                        data: gamingMins,
+                        backgroundColor: '#ef233c',
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Total Screen Time (মোট)',
+                        data: totalMins,
+                        backgroundColor: 'rgba(15, 23, 42, 0.7)',
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        ticks: { color: '#64748b', font: { weight: '600' } },
+                        grid: { display: false }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#64748b',
+                            callback: function(value) { return value + ' m'; }
+                        },
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#0f172a', font: { size: 11, weight: '600' } }
+                    }
+                }
+            }
+        });
+
+        // 3. Quick Actions
+        async function toggleStudyMode() {
+            try {
+                const res = await fetch('/api/study-mode/toggle', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification(data.study_mode_active ? 'স্টাডি মোড সক্রিয় করা হয়েছে!' : 'স্টাডি মোড বন্ধ করা হয়েছে।');
+                    setTimeout(() => location.reload(), 800);
+                }
+            } catch (err) {
+                showNotification('স্টাডি মোড পরিবর্তন ব্যর্থ হয়েছে: ' + err);
+            }
+        }
+
+        async function toggleEmergencyLock() {
+            try {
+                const res = await fetch('/api/emergency-lock/toggle', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification(data.emergency_lock ? 'ল্যাপটপ জরুরি ভিত্তিতে লক করা হয়েছে!' : 'ল্যাপটপ আনলক করা হয়েছে।');
+                    setTimeout(() => location.reload(), 800);
+                }
+            } catch (err) {
+                showNotification('লক কমান্ড পরিবর্তন ব্যর্থ হয়েছে: ' + err);
+            }
+        }
+
+        async function handleRuleSubmit(e, form) {
+            e.preventDefault();
+            const formData = new FormData(form);
+            if (!formData.has('is_blocked')) {
+                formData.append('is_blocked', 'false');
+            }
+            try {
+                const res = await fetch('/api/rules/save', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('রুলস সফলভাবে আপডেট হয়েছে!');
+                    setTimeout(() => location.reload(), 800);
+                }
+            } catch (err) {
+                showNotification('রুলস সেভ ব্যর্থ হয়েছে: ' + err);
+            }
+        }
+
+        async function deleteRule(processName) {
+            if (!confirm(`আপনি কি নিশ্চিত যে '${processName}' এর রুলটি মুছে ফেলতে চান?`)) return;
+            const formData = new FormData();
+            formData.append('process_name', processName);
+            try {
+                const res = await fetch('/api/rules/delete', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('রুলটি মুছে ফেলা হয়েছে।');
+                    setTimeout(() => location.reload(), 800);
+                }
+            } catch (err) {
+                showNotification('মুছে ফেলতে সমস্যা হয়েছে: ' + err);
+            }
+        }
+
+        async function handleSettingsSubmit(e) {
+            e.preventDefault();
+            const form = document.getElementById('settingsForm');
+            const formData = new FormData(form);
+            try {
+                const res = await fetch('/api/settings/update', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    showNotification('শিডিউল ও সেটিংস সফলভাবে সংরক্ষিত হয়েছে!');
+                    setTimeout(() => location.reload(), 800);
+                }
+            } catch (err) {
+                showNotification('সেটিংস আপডেট ব্যর্থ হয়েছে: ' + err);
+            }
+        }
+
+        // Live status background poll (every 5 seconds)
+        async function pollLiveStatus() {
+            try {
+                const res = await fetch('/api/live-status');
+                const data = await res.json();
+                if (data) {
+                    document.getElementById('liveAppName').innerText = data.current_app || 'None';
+                    document.getElementById('liveAppTitle').innerText = data.current_title || '';
+                    document.getElementById('liveAppCategory').innerText = data.current_category || 'Other';
+                    document.getElementById('lastSeenText').innerText = 'সর্বশেষ রেকর্ড: ' + (data.last_activity_time || 'N/A');
+
+                    const pulse = document.getElementById('pulseDot');
+                    const onlineBadge = document.getElementById('onlineBadge');
+                    if (data.online) {
+                        pulse.className = 'pulse-live me-2';
+                        onlineBadge.className = 'badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-50 px-2 py-1 rounded-pill';
+                        onlineBadge.innerText = 'অনলাইন (সক্রিয়)';
+                    } else {
+                        pulse.className = 'pulse-offline me-2';
+                        onlineBadge.className = 'badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-50 px-2 py-1 rounded-pill';
+                        onlineBadge.innerText = 'অফলাইন';
+                    }
+                }
+            } catch (e) {
+                // silently handle poll errors
+            }
+        }
+        setInterval(pollLiveStatus, 5000);
+
+        function refreshDashboardData() {
+            const spinner = document.getElementById('refreshSpinner');
+            spinner.classList.add('fa-spin');
+            setTimeout(() => {
+                location.reload();
+            }, 300);
+        }
+    </script>
+
+    <!-- Google Translate Script (Worldwide Languages) -->
+    <script type="text/javascript">
+        function getCookie(name) {
+            const v = `; ${document.cookie}`;
+            const parts = v.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        function updateLangButtons(lang) {
+            const btnBn = document.getElementById('langTabBn');
+            const btnEn = document.getElementById('langTabEn');
+            if (!btnBn || !btnEn) return;
+
+            btnBn.classList.remove('active');
+            btnEn.classList.remove('active');
+
+            if (lang === 'en') {
+                btnEn.classList.add('active');
+            } else if (lang === 'bn') {
+                btnBn.classList.add('active');
+            }
+        }
+
+        function switchLanguage(lang) {
+            updateLangButtons(lang);
+            localStorage.setItem('preferred_language', lang);
+
+            const domain = window.location.hostname;
+            document.cookie = `googtrans=/auto/${lang}; path=/;`;
+            document.cookie = `googtrans=/auto/${lang}; path=/; domain=${domain}`;
+            document.cookie = `googtrans=/bn/${lang}; path=/;`;
+            document.cookie = `googtrans=/bn/${lang}; path=/; domain=${domain}`;
+
+            const combo = document.querySelector('.goog-te-combo');
+            if (combo) {
+                combo.value = lang;
+                combo.dispatchEvent(new Event('change'));
+            } else {
+                location.reload();
+            }
+        }
+
+        // 180+ Worldwide Countries & Languages Database
+        const ALL_COUNTRIES = [
+            { name: "Bangladesh", native: "বাংলাদেশ", flag: "🇧🇩", lang: "bn", langName: "বাংলা (Bengali)" },
+            { name: "United States", native: "USA", flag: "🇺🇸", lang: "en", langName: "English" },
+            { name: "United Kingdom", native: "UK", flag: "🇬🇧", lang: "en", langName: "English" },
+            { name: "Canada", native: "Canada", flag: "🇨🇦", lang: "en", langName: "English / French" },
+            { name: "Australia", native: "Australia", flag: "🇦🇺", lang: "en", langName: "English" },
+            { name: "India", native: "भारत", flag: "🇮🇳", lang: "hi", langName: "हिन्दी (Hindi)" },
+            { name: "Saudi Arabia", native: "السعودية", flag: "🇸🇦", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "United Arab Emirates", native: "الإمارات", flag: "🇦🇪", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Pakistan", native: "پاکستان", flag: "🇵🇰", lang: "ur", langName: "اردو (Urdu)" },
+            { name: "Qatar", native: "قطر", flag: "🇶🇦", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Kuwait", native: "الكويت", flag: "🇰🇼", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Oman", native: "عُمان", flag: "🇴🇲", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Bahrain", native: "البحرين", flag: "🇧🇭", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Malaysia", native: "Malaysia", flag: "🇲🇾", lang: "ms", langName: "Bahasa Melayu" },
+            { name: "Singapore", native: "Singapore", flag: "🇸🇬", lang: "en", langName: "English / Chinese" },
+            { name: "Indonesia", native: "Indonesia", flag: "🇮🇩", lang: "id", langName: "Bahasa Indonesia" },
+            { name: "Turkey", native: "Türkiye", flag: "🇹🇷", lang: "tr", langName: "Türkçe" },
+            { name: "Germany", native: "Deutschland", flag: "🇩🇪", lang: "de", langName: "Deutsch" },
+            { name: "France", native: "France", flag: "🇫🇷", lang: "fr", langName: "Français" },
+            { name: "Italy", native: "Italia", flag: "🇮🇹", lang: "it", langName: "Italiano" },
+            { name: "Spain", native: "España", flag: "🇪🇸", lang: "es", langName: "Español" },
+            { name: "Portugal", native: "Portugal", flag: "🇵🇹", lang: "pt", langName: "Português" },
+            { name: "Brazil", native: "Brasil", flag: "🇧🇷", lang: "pt", langName: "Português" },
+            { name: "China", native: "中国", flag: "🇨🇳", lang: "zh-CN", langName: "中文 (Chinese)" },
+            { name: "Japan", native: "日本", flag: "🇯🇵", lang: "ja", langName: "日本語 (Japanese)" },
+            { name: "South Korea", native: "대한민국", flag: "🇰🇷", lang: "ko", langName: "한국어 (Korean)" },
+            { name: "Russia", native: "Россия", flag: "🇷🇺", lang: "ru", langName: "Русский" },
+            { name: "Egypt", native: "مصر", flag: "🇪🇬", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "South Africa", native: "South Africa", flag: "🇿🇦", lang: "af", langName: "Afrikaans / English" },
+            { name: "Nigeria", native: "Nigeria", flag: "🇳🇬", lang: "en", langName: "English" },
+            { name: "Kenya", native: "Kenya", flag: "🇰🇪", lang: "sw", langName: "Kiswahili" },
+            { name: "Netherlands", native: "Nederland", flag: "🇳🇱", lang: "nl", langName: "Nederlands" },
+            { name: "Switzerland", native: "Schweiz", flag: "🇨🇭", lang: "de", langName: "Deutsch / Français" },
+            { name: "Sweden", native: "Sverige", flag: "🇸🇪", lang: "sv", langName: "Svenska" },
+            { name: "Norway", native: "Norge", flag: "🇳🇴", lang: "no", langName: "Norsk" },
+            { name: "Denmark", native: "Danmark", flag: "🇩🇰", lang: "da", langName: "Dansk" },
+            { name: "Finland", native: "Suomi", flag: "🇫🇮", lang: "fi", langName: "Suomi" },
+            { name: "Poland", native: "Polska", flag: "🇵🇱", lang: "pl", langName: "Polski" },
+            { name: "Ukraine", native: "Україна", flag: "🇺🇦", lang: "uk", langName: "Українська" },
+            { name: "Greece", native: "Ελλάδα", flag: "🇬🇷", lang: "el", langName: "Ελληνικά" },
+            { name: "Ireland", native: "Éire", flag: "🇮🇪", lang: "ga", langName: "Gaeilge / English" },
+            { name: "New Zealand", native: "New Zealand", flag: "🇳🇿", lang: "en", langName: "English" },
+            { name: "Mexico", native: "México", flag: "🇲🇽", lang: "es", langName: "Español" },
+            { name: "Argentina", native: "Argentina", flag: "🇦🇷", lang: "es", langName: "Español" },
+            { name: "Chile", native: "Chile", flag: "🇨🇱", lang: "es", langName: "Español" },
+            { name: "Colombia", native: "Colombia", flag: "🇨🇴", lang: "es", langName: "Español" },
+            { name: "Peru", native: "Perú", flag: "🇵🇪", lang: "es", langName: "Español" },
+            { name: "Philippines", native: "Pilipinas", flag: "🇵🇭", lang: "tl", langName: "Tagalog / Filipino" },
+            { name: "Vietnam", native: "Việt Nam", flag: "🇻🇳", lang: "vi", langName: "Tiếng Việt" },
+            { name: "Thailand", native: "ประเทศไทย", flag: "🇹🇭", lang: "th", langName: "ไทย (Thai)" },
+            { name: "Nepal", native: "नेपाल", flag: "🇳🇵", lang: "ne", langName: "नेपाली (Nepali)" },
+            { name: "Sri Lanka", native: "ශ්‍රී ලංකා", flag: "🇱🇰", lang: "si", langName: "සිංහල / Tamil" },
+            { name: "Iran", native: "ایران", flag: "🇮🇷", lang: "fa", langName: "فارسی (Persian)" },
+            { name: "Iraq", native: "العراق", flag: "🇮🇶", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Jordan", native: "الأردن", flag: "🇯🇴", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Lebanon", native: "لبنان", flag: "🇱🇧", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Morocco", native: "المغرب", flag: "🇲🇦", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Algeria", native: "الجزائر", flag: "🇩🇿", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Tunisia", native: "تونس", flag: "🇹🇳", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Libya", native: "ليبيا", flag: "🇱🇾", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Sudan", native: "السودان", flag: "🇸🇩", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Syria", native: "سوريا", flag: "🇸🇾", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Yemen", native: "اليمن", flag: "🇾🇪", lang: "ar", langName: "العربية (Arabic)" },
+            { name: "Afghanistan", native: "افغانستان", flag: "🇦🇫", lang: "ps", langName: "پښتو / دری" },
+            { name: "Kazakhstan", native: "Қазақстан", flag: "🇰🇿", lang: "kk", langName: "Қазақша" },
+            { name: "Uzbekistan", native: "O‘zbekiston", flag: "🇺🇿", lang: "uz", langName: "O‘zbek" },
+            { name: "Azerbaijan", native: "Azərbaycan", flag: "🇦🇿", lang: "az", langName: "Azərbaycan" },
+            { name: "Austria", native: "Österreich", flag: "🇦🇹", lang: "de", langName: "Deutsch" },
+            { name: "Belgium", native: "Belgique", flag: "🇧🇪", lang: "nl", langName: "Nederlands / Français" },
+            { name: "Czech Republic", native: "Česko", flag: "🇨🇿", lang: "cs", langName: "Čeština" },
+            { name: "Hungary", native: "Magyarország", flag: "🇭🇺", lang: "hu", langName: "Magyar" },
+            { name: "Romania", native: "România", flag: "🇷🇴", lang: "ro", langName: "Română" },
+            { name: "Bulgaria", native: "България", flag: "🇧🇬", lang: "bg", langName: "Български" },
+            { name: "Serbia", native: "Србија", flag: "🇷🇸", lang: "sr", langName: "Српски" },
+            { name: "Croatia", native: "Hrvatska", flag: "🇭🇷", lang: "hr", langName: "Hrvatski" },
+            { name: "Slovakia", native: "Slovensko", flag: "🇸🇰", lang: "sk", langName: "Slovenčina" },
+            { name: "Slovenia", native: "Slovenija", flag: "🇸🇮", lang: "sl", langName: "Slovenščina" },
+            { name: "Lithuania", native: "Lietuva", flag: "🇱🇹", lang: "lt", langName: "Lietuvių" },
+            { name: "Latvia", native: "Latvija", flag: "🇱🇻", lang: "lv", langName: "Latviešu" },
+            { name: "Estonia", native: "Eesti", flag: "🇪🇪", lang: "et", langName: "Eesti" },
+            { name: "Iceland", native: "Ísland", flag: "🇮🇸", lang: "is", langName: "Íslenska" },
+            { name: "Albania", native: "Shqipëria", flag: "🇦🇱", lang: "sq", langName: "Shqip" },
+            { name: "Bosnia and Herzegovina", native: "Bosna", flag: "🇧🇦", lang: "bs", langName: "Bosanski" },
+            { name: "Georgia", native: "საქართველო", flag: "🇬🇪", lang: "ka", langName: "ქართული" },
+            { name: "Armenia", native: "Հայաստան", flag: "🇦🇲", lang: "hy", langName: "Հայերեն" },
+            { name: "Myanmar", native: "မြန်မာ", flag: "🇲🇲", lang: "my", langName: "ဗမာစာ (Burmese)" },
+            { name: "Cambodia", native: "កម្ពុជា", flag: "🇰🇭", lang: "km", langName: "ភាសាខ្មែរ (Khmer)" },
+            { name: "Laos", native: "ລາວ", flag: "🇱🇦", lang: "lo", langName: "ພາສາລາວ (Lao)" },
+            { name: "Mongolia", native: "Монгол", flag: "🇲🇳", lang: "mn", langName: "Монгол хэл" },
+            { name: "Ethiopia", native: "ኢትዮጵያ", flag: "🇪🇹", lang: "am", langName: "አማርኛ (Amharic)" },
+            { name: "Ghana", native: "Ghana", flag: "🇬🇭", lang: "en", langName: "English" },
+            { name: "Tanzania", native: "Tanzania", flag: "🇹🇿", lang: "sw", langName: "Kiswahili" },
+            { name: "Uganda", native: "Uganda", flag: "🇺🇬", lang: "en", langName: "English / Swahili" },
+            { name: "Zimbabwe", native: "Zimbabwe", flag: "🇿🇼", lang: "en", langName: "English / Shona" },
+            { name: "Zambia", native: "Zambia", flag: "🇿🇲", lang: "en", langName: "English" },
+            { name: "Senegal", native: "Sénégal", flag: "🇸🇳", lang: "fr", langName: "Français / Wolof" },
+            { name: "Ivory Coast", native: "Côte d'Ivoire", flag: "🇨🇮", lang: "fr", langName: "Français" },
+            { name: "Cameroon", native: "Cameroun", flag: "🇨🇲", lang: "fr", langName: "Français" },
+            { name: "Madagascar", native: "Madagasikara", flag: "🇲🇬", lang: "mg", langName: "Malagasy" },
+            { name: "Somalia", native: "Soomaaliya", flag: "🇸🇴", lang: "so", langName: "Soomaaliga" },
+            { name: "Maldives", native: "ދިވެހިރާއްޖެ", flag: "🇲🇻", lang: "dv", langName: "Dhivehi" },
+            { name: "Brunei", native: "Brunei", flag: "🇧🇳", lang: "ms", langName: "Melayu" },
+            { name: "Taiwan", native: "台灣", flag: "🇹🇼", lang: "zh-TW", langName: "繁體中文" },
+            { name: "Hong Kong", native: "香港", flag: "🇭🇰", lang: "zh-TW", langName: "廣東話 / 中文" },
+            { name: "Cyprus", native: "Κύπρος", flag: "🇨🇾", lang: "el", langName: "Ελληνικά / Türkçe" },
+            { name: "Malta", native: "Malta", flag: "🇲🇹", lang: "mt", langName: "Malti / English" },
+            { name: "Luxembourg", native: "Lëtzebuerg", flag: "🇱🇺", lang: "lb", langName: "Lëtzebuergesch" },
+            { name: "Belarus", native: "Беларусь", flag: "🇧🇾", lang: "be", langName: "Беларуская" },
+            { name: "Moldova", native: "Moldova", flag: "🇲🇩", lang: "ro", langName: "Română" },
+            { name: "North Macedonia", native: "Северна Македонија", flag: "🇲🇰", lang: "mk", langName: "Македонски" },
+            { name: "Montenegro", native: "Crna Gora", flag: "🇲🇪", lang: "sr", langName: "Crnogorski" },
+            { name: "Tajikistan", native: "Тоҷикистон", flag: "🇹🇯", lang: "tg", langName: "Тоҷикӣ" },
+            { name: "Kyrgyzstan", native: "Кыргызстан", flag: "🇰🇬", lang: "ky", langName: "Кыргызча" },
+            { name: "Turkmenistan", native: "Türkmenistan", flag: "🇹🇲", lang: "tk", langName: "Türkmençe" },
+            { name: "Mauritius", native: "Mauritius", flag: "🇲🇺", lang: "en", langName: "English / Français" },
+            { name: "Rwanda", native: "Rwanda", flag: "🇷🇼", lang: "rw", langName: "Kinyarwanda" },
+            { name: "Uruguay", native: "Uruguay", flag: "🇺🇾", lang: "es", langName: "Español" },
+            { name: "Paraguay", native: "Paraguay", flag: "🇵🇾", lang: "gn", langName: "Guaraní / Español" },
+            { name: "Bolivia", native: "Bolivia", flag: "🇧🇴", lang: "es", langName: "Español" },
+            { name: "Ecuador", native: "Ecuador", flag: "🇪🇨", lang: "es", langName: "Español" },
+            { name: "Venezuela", native: "Venezuela", flag: "🇻🇪", lang: "es", langName: "Español" },
+            { name: "Costa Rica", native: "Costa Rica", flag: "🇨🇷", lang: "es", langName: "Español" },
+            { name: "Panama", native: "Panamá", flag: "🇵🇦", lang: "es", langName: "Español" },
+            { name: "Guatemala", native: "Guatemala", flag: "🇬🇹", lang: "es", langName: "Español" },
+            { name: "Cuba", native: "Cuba", flag: "🇨🇺", lang: "es", langName: "Español" },
+            { name: "Dominican Republic", native: "Dominicana", flag: "🇩🇴", lang: "es", langName: "Español" },
+            { name: "Honduras", native: "Honduras", flag: "🇭🇳", lang: "es", langName: "Español" },
+            { name: "El Salvador", native: "El Salvador", flag: "🇸🇻", lang: "es", langName: "Español" },
+            { name: "Nicaragua", native: "Nicaragua", flag: "🇳🇮", lang: "es", langName: "Español" },
+            { name: "Haiti", native: "Haïti", flag: "🇭🇹", lang: "ht", langName: "Kreyòl Ayisyen" },
+            { name: "Jamaica", native: "Jamaica", flag: "🇯🇲", lang: "en", langName: "English" },
+            { name: "Trinidad and Tobago", native: "Trinidad", flag: "🇹🇹", lang: "en", langName: "English" },
+            { name: "Guyana", native: "Guyana", flag: "🇬🇾", lang: "en", langName: "English" },
+            { name: "Suriname", native: "Suriname", flag: "🇸🇷", lang: "nl", langName: "Nederlands" },
+            { name: "Fiji", native: "Fiji", flag: "🇫🇯", lang: "en", langName: "English / Fijian" },
+            { name: "Papua New Guinea", native: "PNG", flag: "🇵🇬", lang: "en", langName: "English" },
+            { name: "Angola", native: "Angola", flag: "🇦🇴", lang: "pt", langName: "Português" },
+            { name: "Mozambique", native: "Moçambique", flag: "🇲🇿", lang: "pt", langName: "Português" },
+            { name: "Botswana", native: "Botswana", flag: "🇧🇼", lang: "en", langName: "Setswana / English" },
+            { name: "Namibia", native: "Namibia", flag: "🇳🇦", lang: "en", langName: "English" },
+            { name: "Malawi", native: "Malawi", flag: "🇲🇼", lang: "ny", langName: "Chichewa" },
+            { name: "Congo", native: "Congo", flag: "🇨🇬", lang: "fr", langName: "Français" },
+            { name: "DR Congo", native: "RDC", flag: "🇨🇩", lang: "fr", langName: "Français" },
+            { name: "Mali", native: "Mali", flag: "🇲🇱", lang: "fr", langName: "Français" },
+            { name: "Burkina Faso", native: "Burkina Faso", flag: "🇧🇫", lang: "fr", langName: "Français" },
+            { name: "Niger", native: "Niger", flag: "🇳🇪", lang: "fr", langName: "Français" },
+            { name: "Chad", native: "Tchad", flag: "🇹🇩", lang: "fr", langName: "Français / العربية" },
+            { name: "Guinea", native: "Guinée", flag: "🇬🇳", lang: "fr", langName: "Français" },
+            { name: "Benin", native: "Bénin", flag: "🇧🇯", lang: "fr", langName: "Français" },
+            { name: "Togo", native: "Togo", flag: "🇹🇬", lang: "fr", langName: "Français" },
+            { name: "Gabon", native: "Gabon", flag: "🇬🇦", lang: "fr", langName: "Français" },
+            { name: "Sierra Leone", native: "Sierra Leone", flag: "🇸🇱", lang: "en", langName: "English" },
+            { name: "Liberia", native: "Liberia", flag: "🇱🇷", lang: "en", langName: "English" },
+            { name: "Gambia", native: "Gambia", flag: "🇬🇲", lang: "en", langName: "English" },
+            { name: "Mauritania", native: "موريتانيا", flag: "🇲🇷", lang: "ar", langName: "العربية" },
+            { name: "Djibouti", native: "Djibouti", flag: "🇩🇯", lang: "fr", langName: "Français / العربية" },
+            { name: "Bhutan", native: "འབྲུག", flag: "🇧🇹", lang: "dz", langName: "Dzongkha" },
+            { name: "Andorra", native: "Andorra", flag: "🇦🇩", lang: "ca", langName: "Català" },
+            { name: "Monaco", native: "Monaco", flag: "🇲🇨", lang: "fr", langName: "Français" },
+            { name: "Liechtenstein", native: "Liechtenstein", flag: "🇱🇮", lang: "de", langName: "Deutsch" },
+            { name: "San Marino", native: "San Marino", flag: "🇸🇲", lang: "it", langName: "Italiano" },
+            { name: "Bahamas", native: "Bahamas", flag: "🇧🇸", lang: "en", langName: "English" },
+            { name: "Barbados", native: "Barbados", flag: "🇧🇧", lang: "en", langName: "English" },
+            { name: "Belize", native: "Belize", flag: "🇧🇿", lang: "en", langName: "English" },
+            { name: "Palestine", native: "فلسطين", flag: "🇵🇸", lang: "ar", langName: "العربية (Arabic)" }
+        ];
+
+        function renderCountryList(list) {
+            const container = document.getElementById('countryCardsContainer');
+            if (!container) return;
+            const curCookie = getCookie('googtrans');
+            let curLang = 'bn';
+            if (curCookie) {
+                const parts = curCookie.split('/');
+                if (parts.length > 0) curLang = parts[parts.length - 1];
+            } else {
+                curLang = localStorage.getItem('preferred_language') || 'bn';
+            }
+
+            container.innerHTML = list.map(c => `
+                <div class="col-sm-6 col-md-4 col-lg-3">
+                    <button type="button" class="country-card-btn ${c.lang === curLang ? 'active' : ''}" onclick="selectCountryLang('${c.lang}', '${c.name.replace(/'/g, "\\'")}')">
+                        <span class="country-flag">${c.flag}</span>
+                        <div style="min-width: 0; flex: 1;">
+                            <div class="country-name">${c.name}</div>
+                            <div class="country-lang">${c.langName}</div>
+                        </div>
+                    </button>
+                </div>
+            `).join('');
+
+            const badge = document.getElementById('countryCountBadge');
+            if (badge) badge.innerText = `${list.length} টি দেশ`;
+        }
+
+        function filterCountryList() {
+            const input = document.getElementById('countrySearchInput');
+            if (!input) return;
+            const q = input.value.toLowerCase().trim();
+            if (!q) {
+                renderCountryList(ALL_COUNTRIES);
+                return;
+            }
+            const filtered = ALL_COUNTRIES.filter(c => 
+                c.name.toLowerCase().includes(q) ||
+                c.native.toLowerCase().includes(q) ||
+                c.langName.toLowerCase().includes(q) ||
+                c.lang.toLowerCase().includes(q)
+            );
+            renderCountryList(filtered);
+        }
+
+        function selectCountryLang(lang, countryName) {
+            const modalEl = document.getElementById('worldwideLanguageModal');
+            if (modalEl) {
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+
+            showNotification(`${countryName} ভাষা নির্বাচন করা হয়েছে...`);
+            switchLanguage(lang);
+        }
+
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'bn',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false
+            }, 'google_translate_element');
+
+            setTimeout(() => {
+                const cookieVal = getCookie('googtrans');
+                let cur = 'bn';
+                if (cookieVal) {
+                    const p = cookieVal.split('/');
+                    if (p.length > 0) cur = p[p.length - 1];
+                } else {
+                    const saved = localStorage.getItem('preferred_language');
+                    if (saved) cur = saved;
+                }
+                updateLangButtons(cur);
+            }, 600);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const cookieVal = getCookie('googtrans');
+            let cur = 'bn';
+            if (cookieVal) {
+                const p = cookieVal.split('/');
+                if (p.length > 0) cur = p[p.length - 1];
+            } else {
+                const saved = localStorage.getItem('preferred_language');
+                if (saved) cur = saved;
+            }
+            updateLangButtons(cur);
+            renderCountryList(ALL_COUNTRIES);
+        });
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+</body>
+</html>

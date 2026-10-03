@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# Python logs and local cache
+*.log
+local_offline_cache.db
+client.log
+
+# PyInstaller / Build artifacts
+dist/
+build/
+*.spec.bak
+
+# Node / Mobile App dependencies
+mobile_app/node_modules/
+mobile_app/.expo/
+mobile_app/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE settings
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+.DS_Store
