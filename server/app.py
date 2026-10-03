@@ -212,6 +212,21 @@ async def download_tracker_exe():
         media_type="application/vnd.microsoft.portable-executable"
     )
 
+# --- Android Mobile App APK Download Endpoint ---
+@app.get("/api/download/tracker.apk")
+async def download_tracker_apk():
+    """Serves the compiled Android Mobile App APK."""
+    apk_path = Path(__file__).resolve().parent / "static" / "downloads" / "ParentalScreenTracker.apk"
+    if not apk_path.exists():
+        apk_path = Path(r"F:\ICTBD_02\soft\ParentalScreenTracker.apk")
+    if not apk_path.exists():
+        return JSONResponse(status_code=404, content={"error": "APK not found."})
+    return FileResponse(
+        path=str(apk_path),
+        filename="ParentalScreenTracker.apk",
+        media_type="application/vnd.android.package-archive"
+    )
+
 # --- React Native Mobile App API Endpoints ---
 @app.get("/api/mobile/dashboard")
 async def get_mobile_dashboard():

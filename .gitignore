@@ -18,6 +18,8 @@ client.log
 dist/
 build/
 *.spec.bak
+*.apk
+server/static/downloads/
 
 # Node / Mobile App dependencies
 mobile_app/node_modules/
