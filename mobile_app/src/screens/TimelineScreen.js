@@ -20,7 +20,7 @@ export default function TimelineScreen() {
       const data = await api.getDashboard();
       setLogs(data.recent_logs || []);
     } catch (e) {
-      console.warn('Error fetching logs:', e.message);
+      console.log('Error fetching logs:', e.message);
     } finally {
       setLoading(false);
       setRefreshing(false);

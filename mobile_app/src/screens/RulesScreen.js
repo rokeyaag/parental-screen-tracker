@@ -32,7 +32,7 @@ export default function RulesScreen() {
       const data = await api.getDashboard();
       setRules(data.rules || []);
     } catch (e) {
-      console.warn('Error fetching rules:', e.message);
+      console.log('Error fetching rules:', e.message);
     } finally {
       setLoading(false);
     }

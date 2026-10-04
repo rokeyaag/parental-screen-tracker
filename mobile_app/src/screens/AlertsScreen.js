@@ -20,7 +20,7 @@ export default function AlertsScreen() {
       const data = await api.getDashboard();
       setAlerts(data.recent_alerts || []);
     } catch (e) {
-      console.warn('Error fetching alerts:', e.message);
+      console.log('Error fetching alerts:', e.message);
     } finally {
       setLoading(false);
       setRefreshing(false);

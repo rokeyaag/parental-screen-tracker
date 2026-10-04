@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { colors } from '../theme/colors';
-import { api, getApiBaseUrl, setApiBaseUrl } from '../api/client';
+import { api, getApiBaseUrl, setApiBaseUrl, resetToDetectedBaseUrl } from '../api/client';
 
 export default function SettingsScreen() {
   const [serverUrl, setServerUrl] = useState(getApiBaseUrl());
@@ -33,7 +33,7 @@ export default function SettingsScreen() {
         setDailyQuota(String(data.settings.daily_total_limit_minutes || '240'));
       }
     } catch (e) {
-      console.warn('Settings load error:', e.message);
+      console.log('Settings load error:', e.message);
     }
   };
 
@@ -44,14 +44,21 @@ export default function SettingsScreen() {
       const data = await api.getDashboard();
       Alert.alert('Connected Successfully!', `Server responded: Device ${data.device?.name || 'Online'}`);
     } catch (e) {
-      Alert.alert('Connection Failed', `Cannot reach server: ${e.message}\nPlease verify laptop IP (e.g. http://192.168.1.100:8000).`);
+      Alert.alert('Connection Failed', `Cannot reach server: ${e.message}\nPlease verify laptop IP (e.g. http://192.168.0.103:8000).`);
     } finally {
       setTesting(false);
     }
   };
 
+  const handleAutoDetect = () => {
+    const detected = resetToDetectedBaseUrl();
+    setServerUrl(detected);
+    Alert.alert('IP Detected', `Set to: ${detected}`);
+  };
+
   const handleSaveSettings = async () => {
     setLoading(true);
+    setApiBaseUrl(serverUrl.trim());
     try {
       await api.updateSettings({
         study_start_hour: parseInt(studyStart, 10),
@@ -83,17 +90,22 @@ export default function SettingsScreen() {
           style={styles.input}
           value={serverUrl}
           onChangeText={setServerUrl}
-          placeholder="http://192.168.0.100:8000"
+          placeholder="http://192.168.0.103:8000"
           autoCapitalize="none"
           autoCorrect={false}
         />
-        <TouchableOpacity style={styles.testBtn} onPress={handleTestConnection} disabled={testing}>
-          {testing ? (
-            <ActivityIndicator size="small" color="#000" />
-          ) : (
-            <Text style={styles.testBtnText}>Test Server</Text>
-          )}
-        </TouchableOpacity>
+        <View style={styles.row}>
+          <TouchableOpacity style={[styles.testBtn, { flex: 1, marginRight: 6 }]} onPress={handleTestConnection} disabled={testing}>
+            {testing ? (
+              <ActivityIndicator size="small" color="#000" />
+            ) : (
+              <Text style={styles.testBtnText}>Test Server</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.testBtn, { flex: 1, marginLeft: 6, backgroundColor: colors.accentYellowLight }]} onPress={handleAutoDetect}>
+            <Text style={[styles.testBtnText, { color: colors.accentYellowDark }]}>Auto-Detect IP</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Study Hours Schedule */}

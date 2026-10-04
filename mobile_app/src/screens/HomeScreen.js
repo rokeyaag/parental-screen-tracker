@@ -23,7 +23,7 @@ export default function HomeScreen() {
       const res = await api.getDashboard();
       setData(res);
     } catch (err) {
-      console.warn('Load Error:', err.message);
+      console.log('Load Error:', err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
