@@ -11,16 +11,19 @@ from fastapi import Request, Response
 
 @app.middleware("http")
 async def restore_vercel_path_middleware(request: Request, call_next):
-    # Vercel sends the original requested path in 'x-matched-path' or 'x-forwarded-uri'
-    matched = request.headers.get("x-matched-path") or request.headers.get("x-forwarded-uri")
-    if matched and not matched.startswith("/api/index"):
-        request.scope["path"] = matched.split("?")[0]
-    elif request.scope.get("path", "").startswith("/api/index.py"):
-        new_path = request.scope["path"][len("/api/index.py"):]
-        request.scope["path"] = new_path if new_path.startswith("/") else ("/" + new_path)
-    elif request.scope.get("path", "").startswith("/api/index"):
-        new_path = request.scope["path"][len("/api/index"):]
-        request.scope["path"] = new_path if new_path.startswith("/") else ("/" + new_path)
+    vpath = request.query_params.get("__vercel_path__")
+    if vpath:
+        clean = "/" + vpath.lstrip("/")
+        request.scope["path"] = clean
+    else:
+        matched = request.headers.get("x-matched-path") or request.headers.get("x-forwarded-uri")
+        if matched and not matched.startswith("/api/index"):
+            request.scope["path"] = matched.split("?")[0]
+        elif request.scope.get("path", "").startswith("/api/index"):
+            new_path = request.scope["path"][len("/api/index"):]
+            if new_path.startswith(".py"):
+                new_path = new_path[3:]
+            request.scope["path"] = new_path if new_path.startswith("/") else ("/" + new_path)
 
     try:
         response = await call_next(request)
