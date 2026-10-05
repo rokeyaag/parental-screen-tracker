@@ -21,22 +21,30 @@ An automated, cross-platform parental monitoring and screen-time management syst
    - **Scheduled Study Mode**: Blocks gaming, chat, and distraction apps during designated study hours (e.g., 7:00 PM – 10:00 PM).
    - **Instant Remote Lock**: Parents can lock the child's workstation instantly from the web or mobile dashboard.
 
-4. **Offline Resilience & Auto-Sync**:
+4. **Live Screen Monitoring & Periodic Screenshot Captures**:
+   - **Visual Proof & Monitoring**: Automatically captures crisp, lightweight HD screenshots (1024x576 JPEG) periodically (every 3 minutes) while the child is active.
+   - **Instant On-Demand Capture**: Parents can click "📸 Capture Screen Now" from either the Web Dashboard or React Native Mobile App to capture what's on screen within 3 seconds.
+   - **Smart Idle Exemption**: Screen capture automatically pauses when the child is idle or away from the workstation.
+   - **Screenshot Gallery & Lightbox**: Interactive gallery with click-to-zoom Lightbox modal and download options on both Web and Mobile.
+   - **Bounded Storage Management**: Automatically prunes older screenshots to keep database and memory footprint extremely small (~50KB per capture).
+
+5. **Offline Resilience & Auto-Sync**:
    - Zero data loss architecture. Activity logs are buffered in a local SQLite database whenever the network or PostgreSQL server is offline.
    - Automatically synchronizes and drains cached records to PostgreSQL 16 upon reconnection.
 
-5. **Parent Web Dashboard**:
+6. **Parent Web Dashboard**:
    - Real-time pie charts and 7-day comparative screen time trend bar charts powered by Chart.js.
-   - **Live Window Inspector**: Monitor what the child is currently viewing or playing in real time.
+   - **Live Window Inspector & Screen Viewer**: Monitor active apps, window titles, and live screenshots in real time.
    - One-click CSV export and report download.
    - Full rule management: add, edit, or remove time limits and process restrictions on the fly.
 
-6. **Cross-Platform Mobile App (React Native)**:
-   - Companion mobile application for Android and iOS providing remote monitoring, rule configuration, and instant controls for parents.
+7. **Cross-Platform Mobile App (React Native)**:
+   - Companion mobile application for Android and iOS providing remote monitoring, live screen preview, rule configuration, and instant controls for parents.
 
-7. **Windows Background Client**:
+8. **Windows Background Client**:
    - Runs silently in the background with automatic Windows Startup registration.
    - Compatible with Windows 11 Smart App Control via signed execution runtime.
+
 
 ---
 

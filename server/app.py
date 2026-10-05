@@ -57,6 +57,8 @@ async def dashboard_view(request: Request):
     weekly_trend = database.get_weekly_trend(device_id)
     recent_logs = database.get_recent_activity_logs(device_id, limit=25)
     recent_alerts = database.get_recent_alerts(device_id, limit=15)
+    latest_screenshot = database.get_latest_screenshot(device_id)
+    recent_screenshots = database.get_recent_screenshots(device_id, limit=12)
 
     daily_total_limit_mins = int(settings.get("daily_total_limit_minutes", "240"))
     total_sec = summary["total_seconds"]
@@ -110,7 +112,9 @@ async def dashboard_view(request: Request):
         "live_status": live_status,
         "weekly_trend": weekly_trend,
         "recent_logs": recent_logs,
-        "recent_alerts": recent_alerts
+        "recent_alerts": recent_alerts,
+        "latest_screenshot": latest_screenshot,
+        "recent_screenshots": recent_screenshots
     }
     return templates.TemplateResponse(request=request, name="dashboard.html", context=ctx)
 
@@ -122,12 +126,14 @@ async def get_stats():
     live_status = database.get_live_device_status(device_id)
     weekly_trend = database.get_weekly_trend(device_id)
     settings = database.get_all_settings()
+    latest_screenshot = database.get_latest_screenshot(device_id)
 
     return {
         "summary": summary,
         "apps": apps,
         "live_status": live_status,
         "weekly_trend": weekly_trend,
+        "latest_screenshot": latest_screenshot,
         "study_mode": settings.get("study_mode_active", "false").lower() == "true",
         "emergency_lock": settings.get("emergency_lock", "false").lower() == "true"
     }
@@ -206,6 +212,37 @@ async def export_csv():
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="activity_report_{config.DEVICE_NAME}.csv"'}
     )
+
+# --- Screenshot API Endpoints ---
+@app.get("/api/screenshots/recent")
+async def get_recent_screenshots_api(limit: int = 15):
+    """Returns recent screenshots with thumbnails and metadata."""
+    device_id = database.get_device_id(config.DEVICE_NAME)
+    return database.get_recent_screenshots(device_id, limit=limit)
+
+@app.get("/api/screenshots/latest")
+async def get_latest_screenshot_api():
+    """Returns the most recent screenshot."""
+    device_id = database.get_device_id(config.DEVICE_NAME)
+    latest = database.get_latest_screenshot(device_id)
+    if not latest:
+        return JSONResponse(status_code=404, content={"error": "No screenshot available yet"})
+    return latest
+
+@app.get("/api/screenshots/{screenshot_id}")
+async def get_screenshot_detail_api(screenshot_id: int):
+    """Returns full-resolution screenshot by ID."""
+    shot = database.get_screenshot_by_id(screenshot_id)
+    if not shot:
+        return JSONResponse(status_code=404, content={"error": "Screenshot not found"})
+    return shot
+
+@app.post("/api/screenshots/request")
+async def request_screenshot_capture_api():
+    """Triggers an on-demand screenshot request for the tracker to capture immediately."""
+    database.request_on_demand_screenshot()
+    return {"success": True, "message": "Screenshot capture request sent to tracker client."}
+
 
 # --- Windows Setup Executable Download Endpoint ---
 @app.get("/api/download/tracker.exe")
@@ -301,7 +338,9 @@ async def get_mobile_dashboard():
         },
         "weekly_trend": weekly_trend,
         "recent_logs": recent_logs,
-        "recent_alerts": recent_alerts
+        "recent_alerts": recent_alerts,
+        "latest_screenshot": database.get_latest_screenshot(device_id),
+        "recent_screenshots": database.get_recent_screenshots(device_id, limit=12)
     }
 
 @app.post("/api/mobile/rules/save")

@@ -46,6 +46,15 @@ STUDY_START_HOUR = 19  # 7:00 PM (19:00)
 STUDY_END_HOUR = 22  # 10:00 PM (22:00)
 PARENT_PIN = os.getenv("PARENT_PIN", "1234")
 
+# Screenshot Monitoring Settings
+SCREENSHOT_ENABLED = os.getenv("SCREENSHOT_ENABLED", "true").lower() == "true"
+SCREENSHOT_INTERVAL_SECONDS = int(os.getenv("SCREENSHOT_INTERVAL_SECONDS", "180"))  # Auto-capture every 3 minutes
+SCREENSHOT_MAX_STORED = int(os.getenv("SCREENSHOT_MAX_STORED", "50"))  # Retain latest 50 screenshots per device
+SCREENSHOT_QUALITY = int(os.getenv("SCREENSHOT_QUALITY", "65"))  # JPEG quality 65% for lean storage (~50KB)
+SCREENSHOT_WIDTH = int(os.getenv("SCREENSHOT_WIDTH", "1024"))
+SCREENSHOT_HEIGHT = int(os.getenv("SCREENSHOT_HEIGHT", "576"))
+
 # Web Dashboard Settings
 SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 8000
+

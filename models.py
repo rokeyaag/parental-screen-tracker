@@ -26,6 +26,8 @@ class Device(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     activity_logs = relationship("ActivityLog", back_populates="device")
+    screenshots = relationship("Screenshot", back_populates="device", cascade="all, delete-orphan")
+
 
 
 class AppCategory(Base):
@@ -96,4 +98,20 @@ class SystemAlert(Base):
     alert_type = Column(String(50), nullable=False)  # 'warning', 'blocked', 'study_mode', 'emergency_lock'
     message = Column(Text, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class Screenshot(Base):
+    __tablename__ = "screenshots"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
+    process_name = Column(String(100), nullable=True)
+    window_title = Column(Text, nullable=True)
+    category_name = Column(String(50), default="Other")
+    image_data = Column(Text, nullable=False)  # Base64 JPEG data URI
+    thumbnail_data = Column(Text, nullable=True)  # Small base64 thumbnail for fast UI rendering
+    captured_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    device = relationship("Device", back_populates="screenshots")
+
 

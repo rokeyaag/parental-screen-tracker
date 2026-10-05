@@ -15,7 +15,11 @@ a = Analysis(
         'win32con',
         'psutil',
         'sqlite3',
+        'PIL',
+        'PIL.Image',
+        'PIL.ImageGrab',
     ],
+
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

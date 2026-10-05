@@ -101,5 +101,26 @@ export const api = {
     });
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
+  },
+
+  async requestScreenshot() {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/screenshots/request`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async getRecentScreenshots(limit = 15) {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/screenshots/recent?limit=${limit}`);
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async getLatestScreenshot() {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/screenshots/latest`);
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
   }
 };
+

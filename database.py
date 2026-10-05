@@ -105,9 +105,21 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS screenshots (
+        id BIGSERIAL PRIMARY KEY,
+        device_id INT REFERENCES devices(id) ON DELETE CASCADE,
+        process_name VARCHAR(100),
+        window_title TEXT,
+        category_name VARCHAR(50) DEFAULT 'Other',
+        image_data TEXT NOT NULL,
+        thumbnail_data TEXT,
+        captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_activity_device_time ON activity_logs (device_id, recorded_at);
     CREATE INDEX IF NOT EXISTS idx_activity_process ON activity_logs (process_name);
     CREATE INDEX IF NOT EXISTS idx_alerts_device_time ON system_alerts (device_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_screenshots_device_time ON screenshots (device_id, captured_at DESC);
     """)
 
     # Seed categories
@@ -421,6 +433,125 @@ def get_all_settings():
             rows = cur.fetchall()
             return {r["key"]: r["value"] for r in rows}
 
+# --- Screenshot Operations ---
+
+def save_screenshot(device_id, process_name, window_title, category_name, image_data, thumbnail_data, max_stored=50):
+    """Saves a screenshot and prunes older ones for the device."""
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO screenshots (device_id, process_name, window_title, category_name, image_data, thumbnail_data)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id;
+            """, (device_id, process_name, window_title, category_name, image_data, thumbnail_data))
+            new_id = cur.fetchone()[0]
+
+            # Prune older screenshots beyond max_stored to keep database compact
+            cur.execute("""
+                DELETE FROM screenshots
+                WHERE device_id = %s
+                  AND id NOT IN (
+                      SELECT id FROM screenshots
+                      WHERE device_id = %s
+                      ORDER BY captured_at DESC
+                      LIMIT %s
+                  );
+            """, (device_id, device_id, max_stored))
+            conn.commit()
+            return new_id
+
+def get_recent_screenshots(device_id, limit=20):
+    """Fetches list of recent screenshots with thumbnails and metadata."""
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, device_id, process_name, window_title, category_name, thumbnail_data, captured_at
+                FROM screenshots
+                WHERE device_id = %s
+                ORDER BY captured_at DESC
+                LIMIT %s;
+            """, (device_id, limit))
+            rows = cur.fetchall()
+            results = []
+            for r in rows:
+                ts = r["captured_at"]
+                results.append({
+                    "id": r["id"],
+                    "device_id": r["device_id"],
+                    "process_name": r["process_name"] or "unknown",
+                    "window_title": r["window_title"] or "",
+                    "category_name": r["category_name"] or "Other",
+                    "thumbnail_data": r["thumbnail_data"] or "",
+                    "captured_at": ts.isoformat() if ts else "",
+                    "time_str": ts.strftime("%I:%M %p") if ts else ""
+                })
+            return results
+
+def get_screenshot_by_id(screenshot_id):
+    """Fetches a specific full screenshot by ID."""
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, device_id, process_name, window_title, category_name, image_data, thumbnail_data, captured_at
+                FROM screenshots
+                WHERE id = %s;
+            """, (screenshot_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            ts = row["captured_at"]
+            return {
+                "id": row["id"],
+                "device_id": row["device_id"],
+                "process_name": row["process_name"] or "unknown",
+                "window_title": row["window_title"] or "",
+                "category_name": row["category_name"] or "Other",
+                "image_data": row["image_data"],
+                "thumbnail_data": row["thumbnail_data"],
+                "captured_at": ts.isoformat() if ts else "",
+                "time_str": ts.strftime("%I:%M %p") if ts else ""
+            }
+
+def get_latest_screenshot(device_id):
+    """Fetches the latest full screenshot for a device."""
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, device_id, process_name, window_title, category_name, image_data, thumbnail_data, captured_at
+                FROM screenshots
+                WHERE device_id = %s
+                ORDER BY captured_at DESC
+                LIMIT 1;
+            """, (device_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            ts = row["captured_at"]
+            return {
+                "id": row["id"],
+                "device_id": row["device_id"],
+                "process_name": row["process_name"] or "unknown",
+                "window_title": row["window_title"] or "",
+                "category_name": row["category_name"] or "Other",
+                "image_data": row["image_data"],
+                "thumbnail_data": row["thumbnail_data"],
+                "captured_at": ts.isoformat() if ts else "",
+                "time_str": ts.strftime("%I:%M %p") if ts else ""
+            }
+
+def request_on_demand_screenshot():
+    """Sets a request flag for the background tracker to take a screenshot immediately."""
+    set_setting("pending_screenshot_request", "true")
+
+def check_and_clear_screenshot_request():
+    """Checks if on-demand screenshot was requested and resets the flag."""
+    req = get_setting("pending_screenshot_request", "false").lower() == "true"
+    if req:
+        set_setting("pending_screenshot_request", "false")
+        return True
+    return False
+
 if __name__ == "__main__":
     init_db()
+
 

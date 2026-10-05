@@ -4,11 +4,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import time
 import signal
+import threading
 import config
 import database
 from tracker.window_monitor import get_active_window_info
 from tracker.enforcer import Enforcer
 from tracker import offline_manager
+from tracker import screenshot_manager
 
 def infer_category(process_name, title, default_category="Other"):
     title_lower = title.lower()
@@ -37,6 +39,9 @@ class TrackerClient:
         self.last_save_time = time.time()
         self.last_heartbeat_time = 0
         self.last_sync_time = 0
+        self.last_screenshot_time = 0
+        self.last_screenshot_app = None
+
 
     def _init_device_id(self):
         """Fetches device ID from Postgres if online, or local SQLite cache if offline."""
@@ -116,11 +121,33 @@ class TrackerClient:
                     else:
                         print(f"[Enforcer Blocked] {pname}: {reason}")
 
-                # 3. Batch commit to PostgreSQL (or SQLite offline queue if offline)
+                # 4. Periodic or On-Demand Screenshot Capture
+                try:
+                    if config.SCREENSHOT_ENABLED and not is_idle and pname not in ("unknown", "idle"):
+                        on_demand = False
+                        if offline_manager.is_postgres_available():
+                            on_demand = database.check_and_clear_screenshot_request()
+
+                        time_due = (now - self.last_screenshot_time) >= config.SCREENSHOT_INTERVAL_SECONDS
+                        app_changed = (self.last_screenshot_app != pname) and ((now - self.last_screenshot_time) >= 60)
+
+                        if on_demand or time_due or app_changed:
+                            self.last_screenshot_time = now
+                            self.last_screenshot_app = pname
+                            threading.Thread(
+                                target=screenshot_manager.capture_and_store,
+                                args=(self.device_id, pname, title, cat_name),
+                                daemon=True
+                            ).start()
+                except Exception as e:
+                    print(f"[Screenshot Trigger Error] {e}")
+
+                # 5. Batch commit to PostgreSQL (or SQLite offline queue if offline)
                 if now - self.last_save_time >= config.BATCH_SAVE_INTERVAL_SECONDS:
                     self._flush_batch()
 
                 time.sleep(config.CHECK_INTERVAL_SECONDS)
+
 
             except KeyboardInterrupt:
                 print("\n[Tracker] Stopping...")

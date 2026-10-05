@@ -62,7 +62,18 @@ def test_full_pipeline():
     settings = database.get_all_settings()
     print(f"   Configured settings count: {len(settings)}")
 
+    print("[11] Testing Screenshot Capture & Retrieval...")
+    from tracker import screenshot_manager
+    sid = screenshot_manager.capture_and_store(device_id, "test_verification.exe", "Test Screen Window", "Education/Study")
+    assert sid is not None, "Screenshot capture ID should not be None"
+    screenshots = database.get_recent_screenshots(device_id, limit=5)
+    assert len(screenshots) > 0, "Screenshot list should contain records"
+    latest_shot = database.get_latest_screenshot(device_id)
+    assert latest_shot is not None, "Latest screenshot should not be None"
+    print(f"   Screenshot captured and saved: ID={sid}, Process={latest_shot['process_name']}")
+
     print("\n[SUCCESS] ALL VERIFICATION TESTS PASSED SUCCESSFULLY!")
+
 
 if __name__ == "__main__":
     test_full_pipeline()

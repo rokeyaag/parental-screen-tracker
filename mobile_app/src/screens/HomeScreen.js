@@ -8,6 +8,8 @@ import {
   RefreshControl,
   ActivityIndicator,
   Alert,
+  Image,
+  Modal,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { api } from '../api/client';
@@ -17,6 +19,9 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [capturingScreen, setCapturingScreen] = useState(false);
+  const [selectedScreenshot, setSelectedScreenshot] = useState(null);
+  const [screenshotModalVisible, setScreenshotModalVisible] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -71,6 +76,25 @@ export default function HomeScreen() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleRequestScreenshot = async () => {
+    setCapturingScreen(true);
+    try {
+      await api.requestScreenshot();
+      Alert.alert('Capture Dispatched', 'Taking live screenshot on child PC in ~3 seconds.');
+      setTimeout(loadData, 3500);
+      setTimeout(loadData, 7000);
+    } catch (e) {
+      Alert.alert('Error', 'Failed to request screenshot: ' + e.message);
+    } finally {
+      setTimeout(() => setCapturingScreen(false), 2000);
+    }
+  };
+
+  const openScreenshotViewer = (shot) => {
+    setSelectedScreenshot(shot);
+    setScreenshotModalVisible(true);
   };
 
   if (loading && !data) {
@@ -179,6 +203,137 @@ export default function HomeScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Live Screen Monitoring & Screenshot Card */}
+      <View style={styles.screenshotCard}>
+        <View style={styles.screenshotHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.screenshotCardTitle}>Live Screen (পর্দার সরাসরি ছবি)</Text>
+            <Text style={styles.screenshotCardSub}>Real-time visual monitoring</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.captureBtn, capturingScreen && { opacity: 0.7 }]}
+            onPress={handleRequestScreenshot}
+            disabled={capturingScreen}
+          >
+            {capturingScreen ? (
+              <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 6 }} />
+            ) : null}
+            <Text style={styles.captureBtnText}>
+              {capturingScreen ? 'Capturing...' : '📸 Capture Now'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {data?.latest_screenshot ? (
+          <View>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={styles.screenshotPreviewWrapper}
+              onPress={() => openScreenshotViewer(data.latest_screenshot)}
+            >
+              <Image
+                source={{ uri: data.latest_screenshot.image_data }}
+                style={styles.screenshotMainImage}
+                resizeMode="cover"
+              />
+              <View style={styles.screenshotOverlay}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.screenshotOverlayApp} numberOfLines={1}>
+                    {data.latest_screenshot.process_name}
+                  </Text>
+                  <Text style={styles.screenshotOverlayTitle} numberOfLines={1}>
+                    {data.latest_screenshot.window_title || 'Active Window'}
+                  </Text>
+                </View>
+                <View style={styles.screenshotTimeBadge}>
+                  <Text style={styles.screenshotTimeText}>
+                    {data.latest_screenshot.time_str}
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Horizontal Recent Screenshots Strip */}
+            {data?.recent_screenshots?.length > 1 ? (
+              <View style={styles.galleryStripWrapper}>
+                <Text style={styles.galleryStripTitle}>Recent Captures</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryStripScroll}>
+                  {data.recent_screenshots.map((s, idx) => (
+                    <TouchableOpacity
+                      key={s.id || idx}
+                      style={styles.galleryThumbItem}
+                      onPress={() => openScreenshotViewer(s)}
+                    >
+                      <Image
+                        source={{ uri: s.thumbnail_data || s.image_data }}
+                        style={styles.galleryThumbImg}
+                        resizeMode="cover"
+                      />
+                      <Text style={styles.galleryThumbTime} numberOfLines={1}>
+                        {s.time_str}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+          </View>
+        ) : (
+          <View style={styles.noScreenshotBox}>
+            <Text style={styles.noScreenshotText}>No screenshot recorded yet.</Text>
+            <TouchableOpacity
+              style={styles.emptyCaptureBtn}
+              onPress={handleRequestScreenshot}
+            >
+              <Text style={styles.emptyCaptureBtnText}>Capture Screen Now</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+
+      {/* Fullscreen Screenshot Modal */}
+      <Modal
+        visible={screenshotModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setScreenshotModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.modalAppName}>
+                {selectedScreenshot?.process_name || 'Active Screen'}
+              </Text>
+              <Text style={styles.modalAppTitle} numberOfLines={1}>
+                {selectedScreenshot?.window_title || ''}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setScreenshotModalVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>✕ Close</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalImageContainer}>
+            {selectedScreenshot ? (
+              <Image
+                source={{ uri: selectedScreenshot.image_data || selectedScreenshot.thumbnail_data }}
+                style={styles.modalFullImage}
+                resizeMode="contain"
+              />
+            ) : null}
+          </View>
+
+          <View style={styles.modalFooter}>
+            <Text style={styles.modalFooterText}>
+              Captured at: {selectedScreenshot?.time_str || ''} • Category: {selectedScreenshot?.category_name || 'Other'}
+            </Text>
+          </View>
+        </View>
+      </Modal>
 
       {/* Metric Cards Grid */}
       <View style={styles.metricsGrid}>
@@ -493,4 +648,198 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
+  // Screenshot Styles
+  screenshotCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  screenshotHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  screenshotCardTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: colors.textPrimary,
+  },
+  screenshotCardSub: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 1,
+  },
+  captureBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accentRed,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  captureBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  screenshotPreviewWrapper: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#0f172a',
+    position: 'relative',
+    height: 190,
+  },
+  screenshotMainImage: {
+    width: '100%',
+    height: '100%',
+  },
+  screenshotOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  screenshotOverlayApp: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  screenshotOverlayTitle: {
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  screenshotTimeBadge: {
+    backgroundColor: 'rgba(239, 35, 60, 0.8)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  screenshotTimeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  galleryStripWrapper: {
+    marginTop: 12,
+  },
+  galleryStripTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginBottom: 6,
+  },
+  galleryStripScroll: {
+    flexDirection: 'row',
+  },
+  galleryThumbItem: {
+    width: 90,
+    marginRight: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  galleryThumbImg: {
+    width: 90,
+    height: 52,
+    backgroundColor: '#0f172a',
+  },
+  galleryThumbTime: {
+    fontSize: 9,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    paddingVertical: 2,
+    fontWeight: '600',
+  },
+  noScreenshotBox: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  noScreenshotText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  emptyCaptureBtn: {
+    backgroundColor: colors.accentRed,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  emptyCaptureBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.94)',
+    justifyContent: 'space-between',
+    paddingTop: 40,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+  },
+  modalAppName: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  modalAppTitle: {
+    color: '#94a3b8',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  modalCloseText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalImageContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalFullImage: {
+    width: '100%',
+    height: '100%',
+  },
+  modalFooter: {
+    paddingTop: 10,
+    alignItems: 'center',
+  },
+  modalFooterText: {
+    color: '#94a3b8',
+    fontSize: 11,
+  },
 });
+
