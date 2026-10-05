@@ -1,0 +1,12 @@
+.venv
+build
+dist
+mobile_app
+tracker
+__pycache__
+*.pyc
+*.db
+*.log
+*.exe
+*.ico
+*.lnk
