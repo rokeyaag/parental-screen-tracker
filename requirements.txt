@@ -1,8 +1,8 @@
-﻿psycopg2-binary>=2.9.9
+psycopg2-binary>=2.9.9
 fastapi>=0.115.0
 uvicorn>=0.30.0
 jinja2>=3.1.4
-pywin32>=306
+pywin32>=306; sys_platform == 'win32'
 psutil>=5.9.8
 pydantic>=2.7.0
 python-multipart>=0.0.9

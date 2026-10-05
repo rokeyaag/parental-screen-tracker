@@ -10,15 +10,23 @@ _db_pool = None
 def get_pool():
     global _db_pool
     if _db_pool is None:
-        _db_pool = pool.ThreadedConnectionPool(
-            minconn=1,
-            maxconn=15,
-            user=config.DB_USER,
-            password=config.DB_PASSWORD,
-            host=config.DB_HOST,
-            port=config.DB_PORT,
-            database=config.DB_NAME
-        )
+        if config.DATABASE_URL and ("@" in config.DATABASE_URL or "://" in config.DATABASE_URL):
+            clean_url = config.DATABASE_URL.replace("postgresql+psycopg2://", "postgresql://")
+            _db_pool = pool.ThreadedConnectionPool(
+                minconn=1,
+                maxconn=15,
+                dsn=clean_url
+            )
+        else:
+            _db_pool = pool.ThreadedConnectionPool(
+                minconn=1,
+                maxconn=15,
+                user=config.DB_USER,
+                password=config.DB_PASSWORD,
+                host=config.DB_HOST,
+                port=config.DB_PORT,
+                database=config.DB_NAME
+            )
     return _db_pool
 
 @contextmanager
@@ -31,13 +39,17 @@ def get_db():
         p.putconn(conn)
 
 def init_db():
-    conn = psycopg2.connect(
-        user=config.DB_USER,
-        password=config.DB_PASSWORD,
-        host=config.DB_HOST,
-        port=config.DB_PORT,
-        database=config.DB_NAME
-    )
+    if config.DATABASE_URL and ("@" in config.DATABASE_URL or "://" in config.DATABASE_URL):
+        clean_url = config.DATABASE_URL.replace("postgresql+psycopg2://", "postgresql://")
+        conn = psycopg2.connect(dsn=clean_url)
+    else:
+        conn = psycopg2.connect(
+            user=config.DB_USER,
+            password=config.DB_PASSWORD,
+            host=config.DB_HOST,
+            port=config.DB_PORT,
+            database=config.DB_NAME
+        )
     conn.autocommit = True
     cur = conn.cursor()
 

@@ -13,6 +13,8 @@ ENV/
 *.log
 local_offline_cache.db
 client.log
+.env
+*.env
 
 # PyInstaller / Build artifacts
 dist/

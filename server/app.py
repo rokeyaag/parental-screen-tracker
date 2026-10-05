@@ -25,6 +25,14 @@ app.add_middleware(
 
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent / "templates"))
 
+@app.on_event("startup")
+async def startup_event():
+    try:
+        database.init_db()
+        print("[Startup] Database initialized successfully.")
+    except Exception as e:
+        print(f"[Startup Warning] Could not initialize database on startup: {e}")
+
 def format_time(seconds):
     if not seconds:
         return "0 min"
