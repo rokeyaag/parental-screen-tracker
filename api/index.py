@@ -7,7 +7,7 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 from server.app import app
-from fastapi import Request
+from fastapi import Request, Response
 
 @app.middleware("http")
 async def restore_vercel_path_middleware(request: Request, call_next):
@@ -22,8 +22,16 @@ async def restore_vercel_path_middleware(request: Request, call_next):
         new_path = request.scope["path"][len("/api/index"):]
         request.scope["path"] = new_path if new_path.startswith("/") else ("/" + new_path)
 
-    response = await call_next(request)
-    return response
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        import traceback
+        return Response(
+            content=f"Vercel Error: {str(e)}\n\nTraceback:\n{traceback.format_exc()}",
+            status_code=500,
+            media_type="text/plain"
+        )
 
 @app.get("/health")
 @app.get("/api/health")
