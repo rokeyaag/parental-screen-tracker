@@ -16,8 +16,8 @@ export const detectInitialBaseUrl = () => {
   } catch (e) {
     // fallback
   }
-  // Current active LAN Wi-Fi IP of host PC
-  return 'http://192.168.0.103:8000';
+  // Production Cloud URL on Vercel
+  return 'https://parental-screen-tracker.vercel.app';
 };
 
 let API_BASE_URL = detectInitialBaseUrl();
@@ -34,7 +34,7 @@ export const resetToDetectedBaseUrl = () => {
   return API_BASE_URL;
 };
 
-const fetchWithTimeout = async (url, options = {}, timeoutMs = 7000) => {
+const fetchWithTimeout = async (url, options = {}, timeoutMs = 15000) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
