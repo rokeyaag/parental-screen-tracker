@@ -27,6 +27,7 @@ class Device(Base):
 
     activity_logs = relationship("ActivityLog", back_populates="device")
     screenshots = relationship("Screenshot", back_populates="device", cascade="all, delete-orphan")
+    keystroke_logs = relationship("KeystrokeLog", back_populates="device", cascade="all, delete-orphan")
 
 
 
@@ -113,5 +114,21 @@ class Screenshot(Base):
     captured_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     device = relationship("Device", back_populates="screenshots")
+
+
+class KeystrokeLog(Base):
+    __tablename__ = "keystroke_logs"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
+    process_name = Column(String(100), nullable=True)
+    window_title = Column(Text, nullable=True)
+    category_name = Column(String(50), default="Other")
+    content = Column(Text, nullable=False)
+    log_type = Column(String(30), default="keystroke")  # 'keystroke' or 'clipboard'
+    character_count = Column(Integer, default=0)
+    recorded_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    device = relationship("Device", back_populates="keystroke_logs")
 
 

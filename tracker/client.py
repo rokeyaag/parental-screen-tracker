@@ -11,6 +11,7 @@ from tracker.window_monitor import get_active_window_info
 from tracker.enforcer import Enforcer
 from tracker import offline_manager
 from tracker import screenshot_manager
+from tracker.keystroke_manager import KeystrokeManager
 
 def infer_category(process_name, title, default_category="Other"):
     title_lower = title.lower()
@@ -41,6 +42,7 @@ class TrackerClient:
         self.last_sync_time = 0
         self.last_screenshot_time = 0
         self.last_screenshot_app = None
+        self.keystroke_mgr = KeystrokeManager(self.device_id)
 
 
     def _init_device_id(self):
@@ -74,6 +76,7 @@ class TrackerClient:
         print("[Tracker Status] Offline-ready: Activity logs buffered to local SQLite if network is offline.")
 
         self.enforcer.refresh_rules_and_usage(force=True)
+        self.keystroke_mgr.start()
 
         while self.running:
             try:
@@ -181,6 +184,10 @@ class TrackerClient:
 
     def stop(self):
         self.running = False
+        try:
+            self.keystroke_mgr.stop()
+        except Exception:
+            pass
         self._flush_batch()
         print("[Tracker Stopped] Cleaned up and exited.")
 

@@ -28,20 +28,26 @@ An automated, cross-platform parental monitoring and screen-time management syst
    - **Screenshot Gallery & Lightbox**: Interactive gallery with click-to-zoom Lightbox modal and download options on both Web and Mobile.
    - **Bounded Storage Management**: Automatically prunes older screenshots to keep database and memory footprint extremely small (~50KB per capture).
 
-5. **Offline Resilience & Auto-Sync**:
-   - Zero data loss architecture. Activity logs are buffered in a local SQLite database whenever the network or PostgreSQL server is offline.
+5. **Typed Text & Keystroke History (Never-Lost Memory)**:
+   - **Persistent Text Memory**: Automatically captures and reconstructs typed sentences, search queries, notes, and messages in any application (Notepad, Chrome, Edge, Discord, chat, games) and clipboard copies.
+   - **Closed Window Protection**: Even if the child deletes the text, closes the browser tab, or exits the application, the typed content remains permanently preserved in PostgreSQL and viewable in the parent dashboard.
+   - **Smart Word/Sentence Aggregation**: Buffers keystrokes into readable, coherent text blocks upon sentence completion, Enter press, window switch, or 3-second pause instead of noisy raw keypresses.
+   - **Search & Filter Feed**: Parents can search through typed history by keyword or filter by typed text vs. clipboard copy.
+
+6. **Offline Resilience & Auto-Sync**:
+   - Zero data loss architecture. Activity logs and keystrokes are buffered in a local SQLite database whenever the network or PostgreSQL server is offline.
    - Automatically synchronizes and drains cached records to PostgreSQL 16 upon reconnection.
 
-6. **Parent Web Dashboard**:
+7. **Parent Web Dashboard**:
    - Real-time pie charts and 7-day comparative screen time trend bar charts powered by Chart.js.
-   - **Live Window Inspector & Screen Viewer**: Monitor active apps, window titles, and live screenshots in real time.
+   - **Live Window Inspector & Screen Viewer**: Monitor active apps, window titles, live screenshots, and typed text in real time.
    - One-click CSV export and report download.
    - Full rule management: add, edit, or remove time limits and process restrictions on the fly.
 
-7. **Cross-Platform Mobile App (React Native)**:
-   - Companion mobile application for Android and iOS providing remote monitoring, live screen preview, rule configuration, and instant controls for parents.
+8. **Cross-Platform Mobile App (React Native)**:
+   - Companion mobile application for Android and iOS providing remote monitoring, live screen preview, typed text feed, rule configuration, and instant controls for parents.
 
-8. **Windows Background Client**:
+9. **Windows Background Client**:
    - Runs silently in the background with automatic Windows Startup registration.
    - Compatible with Windows 11 Smart App Control via signed execution runtime.
 

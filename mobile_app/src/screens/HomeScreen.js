@@ -335,6 +335,53 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+      {/* Typed Text & Keystroke History Card */}
+      <View style={styles.keystrokeCard}>
+        <View style={styles.keystrokeHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.keystrokeCardTitle}>⌨️ Typed Text & Keystrokes (লেখা ও ক্লিপবোর্ড)</Text>
+            <Text style={styles.keystrokeCardSub}>Recorded text, searches & clipboard history</Text>
+          </View>
+          <View style={styles.keystrokeCountBadge}>
+            <Text style={styles.keystrokeCountText}>
+              {(data?.recent_keystrokes || []).length} Logs
+            </Text>
+          </View>
+        </View>
+
+        {(data?.recent_keystrokes && data.recent_keystrokes.length > 0) ? (
+          <View style={styles.keystrokeList}>
+            {data.recent_keystrokes.slice(0, 6).map((item, idx) => (
+              <View key={item.id || idx} style={styles.keystrokeItem}>
+                <View style={styles.keystrokeItemHeader}>
+                  <View style={styles.keystrokeTagRow}>
+                    <Text style={styles.keystrokeAppBadge}>{item.process_name}</Text>
+                    {item.log_type === 'clipboard' ? (
+                      <Text style={styles.keystrokeTypeClip}>📋 Copied</Text>
+                    ) : (
+                      <Text style={styles.keystrokeTypeKey}>⌨️ Typed</Text>
+                    )}
+                  </View>
+                  <Text style={styles.keystrokeTime}>{item.time_str}</Text>
+                </View>
+                {item.window_title ? (
+                  <Text style={styles.keystrokeTitle} numberOfLines={1}>
+                    {item.window_title}
+                  </Text>
+                ) : null}
+                <Text style={styles.keystrokeContent} numberOfLines={3}>
+                  {item.content}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <View style={styles.noKeystrokesBox}>
+            <Text style={styles.noKeystrokesText}>No typed text or clipboard records yet.</Text>
+          </View>
+        )}
+      </View>
+
       {/* Metric Cards Grid */}
       <View style={styles.metricsGrid}>
         {/* Total Screen Time */}
@@ -840,6 +887,113 @@ const styles = StyleSheet.create({
   modalFooterText: {
     color: '#94a3b8',
     fontSize: 11,
+  },
+  keystrokeCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  keystrokeHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  keystrokeCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  keystrokeCardSub: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  keystrokeCountBadge: {
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  keystrokeCountText: {
+    color: '#1d4ed8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  keystrokeList: {
+    gap: 8,
+  },
+  keystrokeItem: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  keystrokeItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  keystrokeTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  keystrokeAppBadge: {
+    backgroundColor: '#e2e8f0',
+    color: '#1e293b',
+    fontSize: 11,
+    fontWeight: '700',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  keystrokeTypeClip: {
+    color: '#16a34a',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  keystrokeTypeKey: {
+    color: '#2563eb',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  keystrokeTime: {
+    color: '#94a3b8',
+    fontSize: 10,
+  },
+  keystrokeTitle: {
+    color: '#64748b',
+    fontSize: 11,
+    marginBottom: 4,
+  },
+  keystrokeContent: {
+    color: '#0f172a',
+    fontSize: 12,
+    fontFamily: 'monospace',
+    backgroundColor: '#ffffff',
+    padding: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  noKeystrokesBox: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+  },
+  noKeystrokesText: {
+    color: '#94a3b8',
+    fontSize: 12,
   },
 });
 

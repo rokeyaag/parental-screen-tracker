@@ -72,6 +72,38 @@ def test_full_pipeline():
     assert latest_shot is not None, "Latest screenshot should not be None"
     print(f"   Screenshot captured and saved: ID={sid}, Process={latest_shot['process_name']}")
 
+    print("[12] Testing Keystroke & Text Logging Pipeline...")
+    from tracker import offline_manager
+    # Single typed log
+    k_id = database.save_keystroke_log(device_id, "notepad.exe", "Homework.txt - Notepad", "Education/Study", "Writing essay on science and space exploration", "keystroke")
+    assert k_id is not None, "Keystroke log ID should not be None"
+    
+    # Batch typed & clipboard log
+    sample_batch = [
+        ("chrome.exe", "Google Search: Math Homework - Google Chrome", "Browsing/Video", "how to solve pythagorean theorem", "keystroke", None),
+        ("chrome.exe", "Wikipedia: Solar System - Google Chrome", "Education/Study", "https://en.wikipedia.org/wiki/Solar_System", "clipboard", None),
+    ]
+    saved_count = database.save_keystroke_batch(device_id, sample_batch)
+    assert saved_count == 2, "Batch count should be 2"
+
+    # Query recent logs
+    recent_keys = database.get_recent_keystroke_logs(device_id, limit=10)
+    assert len(recent_keys) >= 3, "Recent keystrokes should have at least 3 records"
+    print(f"   Saved and retrieved {len(recent_keys)} keystroke logs.")
+
+    # Query with search keyword
+    search_keys = database.get_recent_keystroke_logs(device_id, limit=5, search_query="pythagorean")
+    assert len(search_keys) >= 1, "Search for 'pythagorean' should return matches"
+    print(f"   Search query test verified: Found {len(search_keys)} match for 'pythagorean'.")
+
+    # Offline buffering and draining test
+    offline_manager.queue_offline_keystroke_batch(device_id, [
+        ("notepad.exe", "OfflineNotes.txt", "Other", "Offline typed text verification", "keystroke", None)
+    ])
+    drained = offline_manager.drain_offline_queue_to_postgres()
+    assert drained is True, "Offline drain should succeed"
+    print("   Offline keystroke buffering & sync to PostgreSQL passed.")
+
     print("\n[SUCCESS] ALL VERIFICATION TESTS PASSED SUCCESSFULLY!")
 
 

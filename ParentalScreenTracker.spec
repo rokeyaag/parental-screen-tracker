@@ -18,6 +18,9 @@ a = Analysis(
         'PIL',
         'PIL.Image',
         'PIL.ImageGrab',
+        'pynput',
+        'pynput.keyboard',
+        'win32clipboard',
     ],
 
     hookspath=[],

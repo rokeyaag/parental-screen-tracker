@@ -121,6 +121,15 @@ export const api = {
     const res = await fetchWithTimeout(`${API_BASE_URL}/api/screenshots/latest`);
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
+  },
+
+  async getKeystrokes(limit = 30, query = '', logType = '') {
+    let url = `${API_BASE_URL}/api/keystrokes?limit=${limit}`;
+    if (query) url += `&q=${encodeURIComponent(query)}`;
+    if (logType) url += `&log_type=${encodeURIComponent(logType)}`;
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
   }
 };
 
