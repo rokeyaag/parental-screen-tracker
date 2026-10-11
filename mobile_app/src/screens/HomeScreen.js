@@ -114,6 +114,7 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={styles.container}
+      contentContainerStyle={{ paddingBottom: 110 }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.accentYellow]} />
       }
@@ -123,7 +124,7 @@ export default function HomeScreen() {
         <View>
           <Text style={styles.headerTitle}>Parental Monitor</Text>
           <Text style={styles.headerSub}>
-            Device: {device.name} • {device.assigned_child}
+            Device: {device.name || 'Children PC'} • {device.assigned_child || 'Student'}
           </Text>
         </View>
         <View
@@ -154,10 +155,10 @@ export default function HomeScreen() {
         <View style={styles.liveHeaderRow}>
           <Text style={styles.liveLabel}>Currently Active Application</Text>
           <View style={styles.badgeBrowsing}>
-            <Text style={styles.badgeBrowsingText}>{device.current_category}</Text>
+            <Text style={styles.badgeBrowsingText}>{device.current_category || 'Idle / Other'}</Text>
           </View>
         </View>
-        <Text style={styles.liveAppName}>{device.current_app}</Text>
+        <Text style={styles.liveAppName}>{device.current_app || 'No Application Active'}</Text>
         {device.current_title ? (
           <Text style={styles.liveAppTitle} numberOfLines={1}>
             {device.current_title}
@@ -388,24 +389,24 @@ export default function HomeScreen() {
         <View style={[styles.metricCard, styles.borderWhite]}>
           <Text style={styles.metricLabel}>Today's Total Time</Text>
           <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
-            {summary.total_formatted}
+            {summary.total_formatted || '0m'}
           </Text>
           <View style={styles.progressContainer}>
             <View
               style={[
                 styles.progressBar,
-                { width: `${summary.total_pct}%`, backgroundColor: colors.accentYellow }
+                { width: `${summary.total_pct || 0}%`, backgroundColor: colors.accentYellow }
               ]}
             />
           </View>
-          <Text style={styles.metricSub}>Limit: {summary.daily_limit_mins} mins ({summary.total_pct}%)</Text>
+          <Text style={styles.metricSub}>Limit: {summary.daily_limit_mins || 0} mins ({summary.total_pct || 0}%)</Text>
         </View>
 
         {/* Gaming Time */}
         <View style={[styles.metricCard, styles.borderRed]}>
           <Text style={styles.metricLabel}>Gaming Usage</Text>
           <Text style={[styles.metricValue, { color: colors.accentRed }]}>
-            {summary.gaming_formatted}
+            {summary.gaming_formatted || '0m'}
           </Text>
           <Text style={styles.metricSub}>Auto-block on limit</Text>
         </View>
@@ -414,7 +415,7 @@ export default function HomeScreen() {
         <View style={[styles.metricCard, styles.borderYellow]}>
           <Text style={styles.metricLabel}>Study & Productivity</Text>
           <Text style={[styles.metricValue, { color: colors.accentYellowDark }]}>
-            {summary.study_formatted}
+            {summary.study_formatted || '0m'}
           </Text>
           <Text style={styles.metricSub}>VS Code, Zoom, Docs</Text>
         </View>
@@ -423,7 +424,7 @@ export default function HomeScreen() {
         <View style={[styles.metricCard, styles.borderWhite]}>
           <Text style={styles.metricLabel}>Browsing & Media</Text>
           <Text style={[styles.metricValue, { color: colors.textPrimary }]}>
-            {summary.browsing_formatted}
+            {summary.browsing_formatted || '0m'}
           </Text>
           <Text style={styles.metricSub}>Chrome, YouTube</Text>
         </View>

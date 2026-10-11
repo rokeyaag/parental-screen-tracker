@@ -174,7 +174,7 @@ export default function RulesScreen() {
           data={rules}
           keyExtractor={(item) => item.process_name}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 30 }}
+          contentContainerStyle={{ paddingBottom: 110 }}
         />
       )}
 

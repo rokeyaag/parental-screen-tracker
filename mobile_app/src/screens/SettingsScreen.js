@@ -74,7 +74,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 110 }}>
       <View style={styles.header}>
         <Text style={styles.title}>Schedule & Server Settings</Text>
         <Text style={styles.subTitle}>Mobile App & Backend Configuration</Text>
