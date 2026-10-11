@@ -71,6 +71,8 @@ parental-screen-tracker/
 │   ├── window_monitor.py     # Foreground window inspector and idle detection
 │   ├── enforcer.py           # Quota enforcer, warning popups, and process controller
 │   ├── client.py             # Main tracker client, web categorizer, and database sync
+│   ├── screenshot_manager.py # HD periodic and on-demand screenshot engine
+│   ├── keystroke_manager.py  # Typed text, search queries, and clipboard memory engine
 │   └── offline_manager.py    # Local SQLite buffer and offline synchronization engine
 ├── server/
 │   ├── app.py                # FastAPI web backend, REST APIs, and endpoints

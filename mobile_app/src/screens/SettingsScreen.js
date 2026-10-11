@@ -44,7 +44,7 @@ export default function SettingsScreen() {
       const data = await api.getDashboard();
       Alert.alert('Connected Successfully!', `Server responded: Device ${data.device?.name || 'Online'}`);
     } catch (e) {
-      Alert.alert('Connection Failed', `Cannot reach server: ${e.message}\nPlease verify laptop IP (e.g. http://192.168.0.103:8000).`);
+      Alert.alert('Connection Failed', `Cannot reach server: ${e.message}\nPlease verify cloud URL (https://parental-screen-tracker.vercel.app) or laptop IP.`);
     } finally {
       setTesting(false);
     }
@@ -84,13 +84,13 @@ export default function SettingsScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Server Connection (API URL)</Text>
         <Text style={styles.label}>
-          Enter your laptop IP or cloud URL to connect over local Wi-Fi or internet:
+          Enter your cloud URL or laptop local IP:
         </Text>
         <TextInput
           style={styles.input}
           value={serverUrl}
           onChangeText={setServerUrl}
-          placeholder="http://192.168.0.103:8000"
+          placeholder="https://parental-screen-tracker.vercel.app"
           autoCapitalize="none"
           autoCorrect={false}
         />
