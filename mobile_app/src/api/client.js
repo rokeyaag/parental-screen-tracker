@@ -9,7 +9,16 @@ export const detectInitialBaseUrl = () => {
 
     if (hostUri) {
       const host = hostUri.split(':')[0];
-      if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      // Only use local port 8000 if host is a valid LAN IPv4 address (e.g. 192.168.x.x, 10.x.x.x)
+      // If running through Expo tunnel (e.g. exp.direct or ngrok), tunnel domains do not proxy port 8000
+      const isLanIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(host);
+      if (
+        isLanIp &&
+        host !== '127.0.0.1' &&
+        !host.startsWith('192.168.56.') &&
+        !host.startsWith('192.168.17.') &&
+        !host.startsWith('192.168.222.')
+      ) {
         return `http://${host}:8000`;
       }
     }
@@ -128,6 +137,45 @@ export const api = {
     if (query) url += `&q=${encodeURIComponent(query)}`;
     if (logType) url += `&log_type=${encodeURIComponent(logType)}`;
     const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async generatePairingCode(deviceName, assignedChild) {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/devices/generate-pairing-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        device_name: deviceName,
+        assigned_child: assignedChild
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async getMyDevices() {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/devices/my-devices`);
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async login(email, password) {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async register(name, email, password) {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+    });
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
   }

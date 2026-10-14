@@ -15,6 +15,20 @@ from sqlalchemy.orm import declarative_base, relationship
 Base = declarative_base()
 
 
+class Parent(Base):
+    __tablename__ = "parents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    email = Column(String(150), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    api_key = Column(String(100), unique=True, nullable=True)
+    subscription_status = Column(String(50), default="active")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    devices = relationship("Device", back_populates="parent")
+
+
 class Device(Base):
     __tablename__ = "devices"
 
@@ -24,7 +38,13 @@ class Device(Base):
     os_name = Column(String(50), default="Windows")
     last_seen = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_at = Column(DateTime, default=datetime.utcnow)
+    parent_id = Column(Integer, ForeignKey("parents.id"), nullable=True)
+    device_token = Column(String(255), unique=True, nullable=True)
+    pairing_code = Column(String(10), nullable=True)
+    pairing_expiry = Column(DateTime, nullable=True)
+    hardware_uuid = Column(String(100), nullable=True)
 
+    parent = relationship("Parent", back_populates="devices")
     activity_logs = relationship("ActivityLog", back_populates="device")
     screenshots = relationship("Screenshot", back_populates="device", cascade="all, delete-orphan")
     keystroke_logs = relationship("KeystrokeLog", back_populates="device", cascade="all, delete-orphan")

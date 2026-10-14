@@ -3,6 +3,9 @@ from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
 from datetime import datetime, date
+import hashlib
+import secrets
+import random
 import config
 
 _db_pool = None
@@ -55,14 +58,36 @@ def init_db():
 
     # Create tables
     cur.execute("""
+    CREATE TABLE IF NOT EXISTS parents (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(150) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        api_key VARCHAR(100) UNIQUE,
+        subscription_status VARCHAR(50) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS devices (
         id SERIAL PRIMARY KEY,
         device_name VARCHAR(100) UNIQUE NOT NULL,
         assigned_child VARCHAR(100),
         os_name VARCHAR(50) DEFAULT 'Windows',
         last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        parent_id INT REFERENCES parents(id),
+        device_token VARCHAR(255) UNIQUE,
+        pairing_code VARCHAR(10),
+        pairing_expiry TIMESTAMP,
+        hardware_uuid VARCHAR(100)
     );
+
+    -- Ensure SaaS columns exist on older installations
+    ALTER TABLE devices ADD COLUMN IF NOT EXISTS parent_id INT REFERENCES parents(id);
+    ALTER TABLE devices ADD COLUMN IF NOT EXISTS device_token VARCHAR(255) UNIQUE;
+    ALTER TABLE devices ADD COLUMN IF NOT EXISTS pairing_code VARCHAR(10);
+    ALTER TABLE devices ADD COLUMN IF NOT EXISTS pairing_expiry TIMESTAMP;
+    ALTER TABLE devices ADD COLUMN IF NOT EXISTS hardware_uuid VARCHAR(100);
 
     CREATE TABLE IF NOT EXISTS app_categories (
         id SERIAL PRIMARY KEY,
@@ -679,6 +704,142 @@ def get_recent_keystroke_logs(device_id, limit=50, search_query=None, log_type=N
                     "date_str": ts.strftime("%Y-%m-%d") if ts else ""
                 })
             return results
+
+# =====================================================================
+# SaaS Multi-Tenancy & Device Pairing Helpers
+# =====================================================================
+
+def hash_password(password: str) -> str:
+    """Hashes a password with SHA-256 for secure parent authentication."""
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+def register_parent(name: str, email: str, password: str):
+    """Registers a new parent user and returns user info with API key."""
+    email_clean = email.strip().lower()
+    hashed = hash_password(password)
+    api_key = secrets.token_hex(24)
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO parents (name, email, password_hash, api_key)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, name, email, api_key, subscription_status;
+            """, (name.strip(), email_clean, hashed, api_key))
+            conn.commit()
+            row = cur.fetchone()
+            return {
+                "id": row[0],
+                "name": row[1],
+                "email": row[2],
+                "api_key": row[3],
+                "subscription_status": row[4]
+            }
+
+def authenticate_parent(email: str, password: str):
+    """Authenticates parent credentials and returns parent profile."""
+    email_clean = email.strip().lower()
+    hashed = hash_password(password)
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, name, email, api_key, subscription_status
+                FROM parents
+                WHERE email = %s AND password_hash = %s;
+            """, (email_clean, hashed))
+            return cur.fetchone()
+
+def get_parent_by_api_key(api_key: str):
+    """Finds a parent by their bearer API key."""
+    if not api_key:
+        return None
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, name, email, api_key, subscription_status
+                FROM parents
+                WHERE api_key = %s;
+            """, (api_key.strip(),))
+            return cur.fetchone()
+
+def get_parent_devices(parent_id: int):
+    """Lists all laptops/desktops registered to a specific parent."""
+    with get_db() as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, device_name, assigned_child, os_name, last_seen, created_at,
+                       (last_seen >= NOW() - INTERVAL '60 SECONDS') as is_online
+                FROM devices
+                WHERE parent_id = %s
+                ORDER BY created_at DESC;
+            """, (parent_id,))
+            return cur.fetchall()
+
+def create_pairing_code(parent_id: int = None, device_name: str = "", assigned_child: str = ""):
+    """Generates a secure 6-digit pairing code valid for 15 minutes."""
+    code = f"{random.randint(100000, 999999)}"
+    device_token = secrets.token_hex(20)
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            # Validate parent_id exists in parents table, otherwise None to avoid foreign key violation
+            valid_parent_id = None
+            if parent_id:
+                cur.execute("SELECT id FROM parents WHERE id = %s;", (parent_id,))
+                row = cur.fetchone()
+                if row:
+                    valid_parent_id = row[0]
+
+            cur.execute("""
+                INSERT INTO devices (device_name, assigned_child, parent_id, device_token, pairing_code, pairing_expiry)
+                VALUES (%s, %s, %s, %s, %s, NOW() + INTERVAL '15 MINUTES')
+                ON CONFLICT (device_name) DO UPDATE SET
+                    parent_id = COALESCE(EXCLUDED.parent_id, devices.parent_id),
+                    assigned_child = EXCLUDED.assigned_child,
+                    device_token = EXCLUDED.device_token,
+                    pairing_code = EXCLUDED.pairing_code,
+                    pairing_expiry = NOW() + INTERVAL '15 MINUTES'
+                RETURNING id;
+            """, (device_name.strip(), assigned_child.strip(), valid_parent_id, device_token, code))
+            conn.commit()
+            dev_id = cur.fetchone()[0]
+            return {
+                "device_id": dev_id,
+                "device_name": device_name,
+                "pairing_code": code,
+                "expires_in_minutes": 15
+            }
+
+def pair_device_by_code(pairing_code: str, hardware_uuid: str = "", os_name: str = "Windows"):
+    """Validates 6-digit pairing code from child PC and returns permanent device token."""
+    code = pairing_code.strip()
+    with get_db() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, device_name, assigned_child, parent_id, device_token
+                FROM devices
+                WHERE pairing_code = %s AND (pairing_expiry IS NULL OR pairing_expiry >= NOW());
+            """, (code,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            dev_id, dev_name, child, parent_id, token = row
+            # Expire pairing code so it cannot be reused
+            cur.execute("""
+                UPDATE devices
+                SET pairing_code = NULL,
+                    pairing_expiry = NULL,
+                    hardware_uuid = %s,
+                    os_name = %s,
+                    last_seen = NOW()
+                WHERE id = %s;
+            """, (hardware_uuid, os_name, dev_id))
+            conn.commit()
+            return {
+                "device_id": dev_id,
+                "device_name": dev_name,
+                "assigned_child": child,
+                "parent_id": parent_id,
+                "device_token": token
+            }
 
 if __name__ == "__main__":
     init_db()

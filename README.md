@@ -137,6 +137,24 @@ Or double-click `Start-Tracker.bat` to launch the background service with automa
 
 ---
 
+## 🚀 SaaS Multi-Tenant & Device Pairing (Commercial Ready)
+
+The system now natively supports multi-tenant SaaS deployment, allowing different parents to manage their own family devices securely without cross-device interference.
+
+### How Device Pairing Works:
+1. **Parent Account Registration:**
+   Parents create an account via `POST /api/auth/register` or `POST /api/auth/login`.
+2. **Generate Pairing Code:**
+   From the dashboard or mobile app, the parent clicks **"Add Child PC"**, which generates an instantaneous 6-digit pairing code (valid for 15 minutes) via `POST /api/devices/generate-pairing-code`.
+3. **Pair the Child's PC:**
+   On the child's PC, launch the tracker:
+   - **Interactive GUI Dialog:** Run `python windows_client_entry.py --pair` and enter the 6-digit code in the popup window.
+   - **Command Line:** Run `python windows_client_entry.py --pair 123456`.
+4. **Permanent Secure Link:**
+   The tracker verifies the code with `POST /api/devices/pair`, receives a unique `device_token`, and stores it in the local encrypted SQLite cache. From then on, all activity, screenshots, keystrokes, and emergency lock commands are securely tied to that parent's account.
+
+---
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

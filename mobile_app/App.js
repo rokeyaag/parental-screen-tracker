@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, StatusBar, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform, LogBox } from 'react-native';
 import { colors } from './src/theme/colors';
+
+// Ignore non-critical deprecation logs in development
+LogBox.ignoreLogs(['SafeAreaView has been deprecated']);
 
 // Screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -38,7 +41,7 @@ export default function App() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
       {/* Active Screen Content */}
@@ -71,7 +74,7 @@ export default function App() {
           );
         })}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -79,6 +82,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#ffffff',
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0,
   },
   contentContainer: {
     flex: 1,

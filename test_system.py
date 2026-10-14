@@ -104,6 +104,35 @@ def test_full_pipeline():
     assert drained is True, "Offline drain should succeed"
     print("   Offline keystroke buffering & sync to PostgreSQL passed.")
 
+    print("[13] Testing SaaS Multi-Tenancy & Device Pairing Flow...")
+    test_email = f"parent_test_{int(time.time())}@example.com"
+    # Register parent
+    parent = database.register_parent("Test Parent", test_email, "SecurePass123!")
+    assert parent["id"] is not None and parent["api_key"] is not None, "Parent registration should succeed"
+    print(f"   Parent registered: {parent['name']} (ID: {parent['id']}, API Key: {parent['api_key'][:8]}...)")
+
+    # Authenticate parent
+    auth_parent = database.authenticate_parent(test_email, "SecurePass123!")
+    assert auth_parent is not None and auth_parent["email"] == test_email, "Parent authentication should succeed"
+
+    # Generate 6-digit pairing code
+    code_res = database.create_pairing_code(parent["id"], "Child Gaming Laptop", "Rahim")
+    pairing_code = code_res["pairing_code"]
+    assert len(pairing_code) == 6, "Pairing code must be 6 digits"
+    print(f"   Pairing code generated: {pairing_code} for device: {code_res['device_name']}")
+
+    # Pair device using the 6-digit code
+    paired = database.pair_device_by_code(pairing_code, hardware_uuid="TEST-HW-UUID-1234")
+    assert paired is not None, "Device pairing should succeed"
+    assert paired["device_token"] is not None, "Device token should be created"
+    assert paired["parent_id"] == parent["id"], "Parent ID should match"
+    print(f"   Device paired successfully: Device ID={paired['device_id']}, Token={paired['device_token'][:10]}...")
+
+    # Fetch parent's devices
+    parent_devices = database.get_parent_devices(parent["id"])
+    assert len(parent_devices) >= 1, "Parent should have at least 1 registered device"
+    print(f"   Retrieved {len(parent_devices)} devices linked to parent account.")
+
     print("\n[SUCCESS] ALL VERIFICATION TESTS PASSED SUCCESSFULLY!")
 
 

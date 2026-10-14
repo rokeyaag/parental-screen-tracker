@@ -548,7 +548,7 @@
                         <i class="fa-solid fa-laptop fs-5" style="color: var(--accent-yellow);"></i>
                     </div>
                     <div>
-                <div class="fw-bold fs-5 text-dark"><i class="fa-solid fa-book-open-reader me-2 text-warning"></i> Study Mode</div>
+                        <div class="small text-secondary fw-semibold">Live Window Tracking (লাইভ উইন্ডো ট্র্যাকিং)</div>
                         <div class="fw-bold fs-6" id="liveAppDisplay">
                             <span class="badge badge-cat-browsing me-2" id="liveAppCategory">{{ live_status.current_category }}</span>
                             <span class="text-dark fw-bold" id="liveAppName">{{ live_status.current_app }}</span>
@@ -558,9 +558,9 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
-                    <p class="small text-secondary mb-0">Temporarily block gaming & social media apps</p>
-                    <span class="badge {% if live_status.online %}bg-warning bg-opacity-25 text-warning border-warning{% else %}bg-secondary bg-opacity-25 text-secondary border-secondary{% endif %} border border-opacity-50 px-2 py-1 rounded-pill" id="onlineBadge">
-                        {% if study_mode_active %}Active{% else %}Disabled{% endif %}
+                    <span class="small text-secondary" id="lastSeenText">Last active: {{ live_status.last_activity_time or 'Just now' }}</span>
+                    <span class="badge {% if live_status.online %}bg-success bg-opacity-25 text-success border-success{% else %}bg-secondary bg-opacity-25 text-secondary border-secondary{% endif %} border border-opacity-50 px-2 py-1 rounded-pill" id="onlineBadge">
+                        {% if live_status.online %}Online (সক্রিয়){% else %}Offline{% endif %}
                     </span>
                 </div>
             </div>
@@ -569,30 +569,30 @@
         <!-- Quick Emergency & Study Mode Toggles -->
         <div class="row g-3 mb-4">
             <div class="col-md-6">
-                <div class="card-custom p-3 d-flex flex-row align-items-center justify-content-between">
+                <div class="card-custom p-3 d-flex flex-row align-items-center justify-content-between h-100">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <i class="fa-solid fa-book-open-reader fs-5" style="color: var(--accent-yellow);"></i>
-                        <i class="fa-solid fa-toggle-on me-1"></i> {% if study_mode_active %}Disable Study Mode{% else %}Enable Study Mode{% endif %}
+                            <h6 class="fw-bold mb-0 text-dark">Enable Study Mode</h6>
                         </div>
-                    <p class="small text-secondary mb-0">When active, gaming and social media apps are automatically blocked during study hours.</p>
+                        <p class="small text-secondary mb-0">When active, gaming and social media apps are automatically blocked during study hours.</p>
                     </div>
-                    <button id="studyBtn" onclick="toggleStudyMode()" class="btn {% if study_mode %}btn-yellow{% else %}btn-outline-yellow{% endif %} px-4 py-2 rounded-pill fw-bold">
+                    <button id="studyBtn" onclick="toggleStudyMode()" class="btn {% if study_mode %}btn-yellow{% else %}btn-outline-yellow{% endif %} px-4 py-2 rounded-pill fw-bold ms-3 text-nowrap">
                         <i class="fa-solid fa-power-off me-1"></i> {% if study_mode %}Active{% else %}Disabled{% endif %}
                     </button>
-                <div class="fw-bold fs-5 text-dark"><i class="fa-solid fa-shield-halved me-2 text-danger"></i> Emergency Device Lock</div>
+                </div>
             </div>
 
             <div class="col-md-6">
-                <div class="card-custom p-3 d-flex flex-row align-items-center justify-content-between">
+                <div class="card-custom p-3 d-flex flex-row align-items-center justify-content-between h-100">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-1">
-                            <i class="fa-solid fa-lock fs-5" style="color: var(--accent-red);"></i>
-                    <p class="small text-secondary mb-0">Immediately lock and freeze screen</p>
+                            <i class="fa-solid fa-shield-halved fs-5" style="color: var(--accent-red);"></i>
+                            <h6 class="fw-bold mb-0 text-dark">Emergency Device Lock</h6>
                         </div>
-                        {% if emergency_lock %}Locked{% else %}Unlocked{% endif %}
+                        <p class="small text-secondary mb-0">Immediately lock and freeze screen</p>
                     </div>
-                    <button id="lockBtn" onclick="toggleEmergencyLock()" class="btn {% if emergency_lock %}btn-red{% else %}btn-outline-red{% endif %} px-4 py-2 rounded-pill fw-bold">
+                    <button id="lockBtn" onclick="toggleEmergencyLock()" class="btn {% if emergency_lock %}btn-red{% else %}btn-outline-red{% endif %} px-4 py-2 rounded-pill fw-bold ms-3 text-nowrap">
                         <i class="fa-solid fa-lock me-1"></i> {% if emergency_lock %}Locked{% else %}Unlocked{% endif %}
                     </button>
                 </div>

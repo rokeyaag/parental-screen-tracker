@@ -21,6 +21,9 @@ a = Analysis(
         'pynput',
         'pynput.keyboard',
         'win32clipboard',
+        'tkinter',
+        'tkinter.simpledialog',
+        'tkinter.messagebox',
     ],
 
     hookspath=[],

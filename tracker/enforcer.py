@@ -246,15 +246,21 @@ class Enforcer:
                     daily_limit_mins = rule["daily_limit_minutes"] if rule else 0
                     is_game_or_social = (category in ("Gaming", "Social Media")) or any(k in pname for k in ["roblox", "minecraft", "valorant", "fortnite", "genshin", "steam", "discord", "game"])
 
+                    is_browser = pname in (
+                        "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe",
+                        "opera.exe", "opera_gx.exe", "vivaldi.exe", "tor.exe",
+                        "arc.exe", "safari.exe", "waterfox.exe", "yandex.exe", "iexplore.exe"
+                    ) or "browser" in pname or category == "Browsing/Video"
+
                     # 1. Emergency Lock check
                     if emergency_lock:
                         self._lock_screen()
-                        if category in ("Gaming", "Social Media", "Browsing/Video") or is_game_or_social or any(k in pname for k in ["discord", "steam", "telegram"]):
+                        if is_browser or category in ("Gaming", "Social Media", "Browsing/Video", "Entertainment") or is_game_or_social or any(k in pname for k in ["discord", "steam", "telegram", "spotify", "netflix"]):
                             self._close_process(pid, pname)
                             now = time.time()
                             if now - _last_blocked_time.get(pname, 0) > 15:
                                 _last_blocked_time[pname] = now
-                                msg = "Parent has temporarily locked device usage."
+                                msg = "Parent has temporarily locked device usage. Web applications and sites are disabled."
                                 show_alert_window("Parental Lock Active", msg)
                                 self._log_alert(pname, "emergency_lock", msg)
                             continue

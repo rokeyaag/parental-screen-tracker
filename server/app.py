@@ -410,6 +410,71 @@ async def update_settings_mobile(payload: dict = Body(...)):
         database.set_setting("daily_total_limit_minutes", str(payload["daily_total_limit_minutes"]))
     return {"success": True, "message": "Settings updated"}
 
+# =====================================================================
+# SaaS Multi-Tenant Authentication & Device Pairing API Endpoints
+# =====================================================================
+
+@app.post("/api/auth/register")
+async def api_register_parent(payload: dict = Body(...)):
+    name = payload.get("name", "").strip()
+    email = payload.get("email", "").strip()
+    password = payload.get("password", "")
+    if not name or not email or not password:
+        return JSONResponse(status_code=400, content={"error": "Name, email, and password are required."})
+    try:
+        parent = database.register_parent(name, email, password)
+        return {"success": True, "parent": parent}
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"error": f"Registration failed (Email might already be registered): {e}"})
+
+@app.post("/api/auth/login")
+async def api_login_parent(payload: dict = Body(...)):
+    email = payload.get("email", "").strip()
+    password = payload.get("password", "")
+    parent = database.authenticate_parent(email, password)
+    if not parent:
+        return JSONResponse(status_code=401, content={"error": "Invalid email or password."})
+    devices = database.get_parent_devices(parent["id"])
+    return {"success": True, "parent": parent, "devices": devices}
+
+@app.post("/api/devices/generate-pairing-code")
+async def api_generate_pairing_code(request: Request, payload: dict = Body(...)):
+    auth = request.headers.get("authorization", "")
+    parent = None
+    if auth.startswith("Bearer "):
+        token = auth.split("Bearer ", 1)[1].strip()
+        parent = database.get_parent_by_api_key(token)
+    parent_id = parent["id"] if parent else payload.get("parent_id", 1)
+    device_name = payload.get("device_name", "Child PC").strip()
+    assigned_child = payload.get("assigned_child", "").strip()
+
+    result = database.create_pairing_code(parent_id, device_name, assigned_child)
+    return {"success": True, **result}
+
+@app.post("/api/devices/pair")
+async def api_pair_device(payload: dict = Body(...)):
+    pairing_code = payload.get("pairing_code", "").strip()
+    hardware_uuid = payload.get("hardware_uuid", "").strip()
+    os_name = payload.get("os_name", "Windows")
+    if not pairing_code:
+        return JSONResponse(status_code=400, content={"error": "Pairing code is required."})
+
+    paired = database.pair_device_by_code(pairing_code, hardware_uuid, os_name)
+    if not paired:
+        return JSONResponse(status_code=404, content={"error": "Invalid or expired pairing code. Please generate a new one from your dashboard."})
+    return {"success": True, "device": paired}
+
+@app.get("/api/devices/my-devices")
+async def api_get_my_devices(request: Request, parent_id: int = 1):
+    auth = request.headers.get("authorization", "")
+    if auth.startswith("Bearer "):
+        token = auth.split("Bearer ", 1)[1].strip()
+        p = database.get_parent_by_api_key(token)
+        if p:
+            parent_id = p["id"]
+    devices = database.get_parent_devices(parent_id)
+    return {"success": True, "devices": devices}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server.app:app", host=config.SERVER_HOST, port=config.SERVER_PORT, reload=True)

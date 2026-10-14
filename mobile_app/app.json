@@ -28,6 +28,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.parental.screentracker"
     },
+    "updates": {
+      "enabled": false,
+      "checkAutomatically": "NEVER"
+    },
     "plugins": [
       "expo-asset",
       "expo-status-bar"

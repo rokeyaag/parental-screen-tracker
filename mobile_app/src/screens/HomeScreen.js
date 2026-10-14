@@ -10,6 +10,7 @@ import {
   Alert,
   Image,
   Modal,
+  TextInput,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { api } from '../api/client';
@@ -20,8 +21,33 @@ export default function HomeScreen() {
   const [data, setData] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [capturingScreen, setCapturingScreen] = useState(false);
-  const [selectedScreenshot, setSelectedScreenshot] = useState(null);
   const [screenshotModalVisible, setScreenshotModalVisible] = useState(false);
+  const [selectedScreenshot, setSelectedScreenshot] = useState(null);
+  const [pairingModalVisible, setPairingModalVisible] = useState(false);
+  const [newDeviceName, setNewDeviceName] = useState('');
+  const [newChildName, setNewChildName] = useState('');
+  const [generatedCode, setGeneratedCode] = useState('');
+  const [pairingLoading, setPairingLoading] = useState(false);
+
+  const handleGenerateCode = async () => {
+    if (!newDeviceName.trim()) {
+      Alert.alert('Required', 'Please enter a device name (e.g. Study PC).');
+      return;
+    }
+    setPairingLoading(true);
+    try {
+      const res = await api.generatePairingCode(newDeviceName.trim(), newChildName.trim());
+      if (res.success && res.pairing_code) {
+        setGeneratedCode(res.pairing_code);
+      } else {
+        Alert.alert('Error', 'Could not generate code.');
+      }
+    } catch (err) {
+      Alert.alert('Pairing Error', err.message);
+    } finally {
+      setPairingLoading(false);
+    }
+  };
 
   const loadData = useCallback(async () => {
     try {
@@ -127,26 +153,37 @@ export default function HomeScreen() {
             Device: {device.name || 'Children PC'} • {device.assigned_child || 'Student'}
           </Text>
         </View>
-        <View
-          style={[
-            styles.statusPill,
-            { backgroundColor: device.online ? '#ecfdf5' : '#fef2f2', borderColor: device.online ? '#a7f3d0' : '#fecaca' }
-          ]}
-        >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <TouchableOpacity
+            style={styles.addPcBtn}
+            onPress={() => {
+              setGeneratedCode('');
+              setPairingModalVisible(true);
+            }}
+          >
+            <Text style={styles.addPcBtnText}>+ Pair PC</Text>
+          </TouchableOpacity>
           <View
             style={[
-              styles.dot,
-              { backgroundColor: device.online ? colors.onlineGreen : colors.offlineRed }
-            ]}
-          />
-          <Text
-            style={[
-              styles.statusText,
-              { color: device.online ? colors.onlineGreen : colors.offlineRed }
+              styles.statusPill,
+              { backgroundColor: device.online ? '#ecfdf5' : '#fef2f2', borderColor: device.online ? '#a7f3d0' : '#fecaca' }
             ]}
           >
-            {device.online ? 'Online' : 'Offline'}
-          </Text>
+            <View
+              style={[
+                styles.dot,
+                { backgroundColor: device.online ? colors.onlineGreen : colors.offlineRed }
+              ]}
+            />
+            <Text
+              style={[
+                styles.statusText,
+                { color: device.online ? colors.onlineGreen : colors.offlineRed }
+              ]}
+            >
+              {device.online ? 'Online' : 'Offline'}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -453,6 +490,84 @@ export default function HomeScreen() {
           </View>
         </View>
       ))}
+
+      {/* SaaS Device Pairing Modal */}
+      <Modal
+        visible={pairingModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setPairingModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.pairingModalCard}>
+            <Text style={styles.pairingModalTitle}>Link a Child Computer (পিসি যুক্ত করুন)</Text>
+            <Text style={styles.pairingModalSub}>
+              Generate a 6-digit code to connect a laptop or desktop to your parental account.
+            </Text>
+
+            {generatedCode ? (
+              <View style={styles.codeContainer}>
+                <Text style={styles.codeLabel}>YOUR 6-DIGIT PAIRING CODE:</Text>
+                <Text style={styles.codeValue}>{generatedCode}</Text>
+                <Text style={styles.codeInstructions}>
+                  ১. বাচ্চার ল্যাপটপে ট্র্যাকার অ্যাপ চালু করুন।{'\n'}
+                  ২. 'Enter 6-digit Pairing Code' বক্সে এই কোডটি দিন।{'\n'}
+                  ৩. কোডটির মেয়াদ ১৫ মিনিট। কোড সাবমিট করা মাত্রই ল্যাপটপটি আপনার অ্যাকাউন্টের সাথে আজীবনের জন্য কানেক্ট হয়ে যাবে।
+                </Text>
+                <TouchableOpacity
+                  style={styles.pairingDoneBtn}
+                  onPress={() => {
+                    setPairingModalVisible(false);
+                    setGeneratedCode('');
+                    loadData();
+                  }}
+                >
+                  <Text style={styles.pairingDoneBtnText}>Done (সম্পন্ন হয়েছে)</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ marginTop: 14 }}>
+                <Text style={styles.inputLabel}>Device Name (যেমন: Rahim's Laptop):</Text>
+                <TextInput
+                  style={styles.pairingInput}
+                  placeholder="e.g. Study PC, Rahim's Laptop"
+                  placeholderTextColor="#999"
+                  value={newDeviceName}
+                  onChangeText={setNewDeviceName}
+                />
+
+                <Text style={[styles.inputLabel, { marginTop: 10 }]}>Child's Name (সন্তানের নাম):</Text>
+                <TextInput
+                  style={styles.pairingInput}
+                  placeholder="e.g. Ayan, Rahim"
+                  placeholderTextColor="#999"
+                  value={newChildName}
+                  onChangeText={setNewChildName}
+                />
+
+                <TouchableOpacity
+                  style={[styles.generateCodeBtn, pairingLoading && { opacity: 0.6 }]}
+                  onPress={handleGenerateCode}
+                  disabled={pairingLoading}
+                >
+                  {pairingLoading ? (
+                    <ActivityIndicator color="#000" size="small" />
+                  ) : (
+                    <Text style={styles.generateCodeBtnText}>Generate 6-Digit Code (কোড তৈরি করুন)</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.cancelBtn}
+                  onPress={() => setPairingModalVisible(false)}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -995,6 +1110,133 @@ const styles = StyleSheet.create({
   noKeystrokesText: {
     color: '#94a3b8',
     fontSize: 12,
+  },
+  addPcBtn: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addPcBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  pairingModalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  pairingModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  pairingModalSub: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 4,
+  },
+  pairingInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 14,
+    color: '#0f172a',
+  },
+  generateCodeBtn: {
+    backgroundColor: '#f59e0b',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  generateCodeBtnText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  cancelBtn: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  cancelBtnText: {
+    color: '#64748b',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  codeContainer: {
+    marginTop: 18,
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  codeLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#475569',
+    letterSpacing: 1,
+  },
+  codeValue: {
+    fontSize: 34,
+    fontWeight: '900',
+    color: '#0284c7',
+    letterSpacing: 6,
+    marginVertical: 10,
+  },
+  codeInstructions: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 18,
+    textAlign: 'left',
+    marginTop: 4,
+    backgroundColor: '#e0f2fe',
+    padding: 10,
+    borderRadius: 8,
+  },
+  pairingDoneBtn: {
+    backgroundColor: '#10b981',
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 24,
+    marginTop: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  pairingDoneBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
 

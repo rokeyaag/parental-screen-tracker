@@ -85,11 +85,60 @@ def uninstall_autostart():
         print(f"[Autostart Error] {e}")
         return False
 
+def handle_pairing(code):
+    """Pairs this computer with a parent's account using the 6-digit pairing code."""
+    try:
+        import database
+        from tracker import offline_manager
+        paired = database.pair_device_by_code(code)
+        if paired:
+            conn = offline_manager.get_sqlite_conn()
+            with conn:
+                conn.execute("INSERT OR REPLACE INTO local_meta (key, value) VALUES ('device_id', ?);", (str(paired["device_id"]),))
+                conn.execute("INSERT OR REPLACE INTO local_meta (key, value) VALUES ('device_token', ?);", (paired["device_token"],))
+                conn.execute("INSERT OR REPLACE INTO local_meta (key, value) VALUES ('device_name', ?);", (paired["device_name"],))
+            conn.close()
+            print(f"[Pairing Success] Device linked to {paired['device_name']} (ID: {paired['device_id']})")
+            show_popup("Device Paired Successfully", f"This computer has been successfully linked to '{paired['device_name']}'!")
+            return True
+        else:
+            show_popup("Pairing Failed", "Invalid or expired 6-digit pairing code. Please generate a new code from your dashboard.", is_error=True)
+            return False
+    except Exception as e:
+        show_popup("Pairing Error", f"Error during pairing: {e}", is_error=True)
+        return False
+
+def prompt_pairing_gui():
+    """Shows a clean input dialog asking for the 6-digit pairing code."""
+    try:
+        import tkinter as tk
+        from tkinter import simpledialog
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        code = simpledialog.askstring("Parental Screen Tracker - Pair PC", "Enter 6-digit Pairing Code from your Mobile Dashboard:")
+        root.destroy()
+        if code and code.strip():
+            return handle_pairing(code.strip())
+    except Exception as e:
+        print(f"[GUI Prompt Error] {e}")
+    return False
+
 def main():
     try:
-        args = [a.lower() for a in sys.argv[1:]]
+        raw_args = sys.argv[1:]
+        args = [a.lower() for a in raw_args]
 
-        if any(a in ("--install", "-i", "install") for a in args):
+        if any(a in ("--help", "-h", "help", "/?") for a in args):
+            print("Parental Screen Tracker - Windows Background Client")
+            print("Usage:")
+            print("  windows_client_entry.exe              : Run tracker in background (installs to startup)")
+            print("  windows_client_entry.exe --pair [CODE]: Pair PC to parent account with 6-digit code")
+            print("  windows_client_entry.exe --install    : Register auto-start in Windows Startup")
+            print("  windows_client_entry.exe --uninstall  : Remove auto-start registration")
+            print("  windows_client_entry.exe --silent     : Start silently without confirmation popup")
+            return
+        elif any(a in ("--install", "-i", "install") for a in args):
             install_autostart()
             show_popup(
                 "Parental Screen Tracker",
@@ -99,6 +148,19 @@ def main():
         elif any(a in ("--uninstall", "-u", "uninstall") for a in args):
             uninstall_autostart()
             show_popup("Parental Screen Tracker", "Parental Screen Tracker has been uninstalled successfully.")
+            return
+        elif any(a in ("--pair", "-p", "pair") for a in args):
+            # Check if code was passed next to --pair
+            idx = -1
+            for flag in ("--pair", "-p", "pair"):
+                if flag in args:
+                    idx = args.index(flag)
+                    break
+            if idx != -1 and idx + 1 < len(raw_args):
+                code = raw_args[idx + 1]
+                handle_pairing(code)
+            else:
+                prompt_pairing_gui()
             return
 
         is_silent = "--silent" in args or "-s" in args
