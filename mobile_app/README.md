@@ -47,3 +47,25 @@ http://[YOUR-PC-LOCAL-IP]:8000
 ```
 Example: `http://192.168.0.105:8000`
 *(Ensure both mobile device and PC are on the same local Wi-Fi network, or use ngrok/Cloudflare Tunnel for remote internet access).*
+
+---
+
+## 📦 Building Standalone Android APK (.apk):
+
+### Option A: 1-Click Batch Builder (Recommended)
+Double-click `Build_Mobile_APK.bat` located in the root project directory. It provides an automated interactive menu to build fresh APKs, login to Expo, or copy the prebuilt APK to your Desktop.
+
+### Option B: Expo EAS Cloud Build (Command Line)
+1. Ensure EAS CLI is available:
+   ```bash
+   npm install -g eas-cli
+   ```
+2. Login to your free Expo account:
+   ```bash
+   eas login
+   ```
+3. Build the APK:
+   ```bash
+   eas build -p android --profile preview
+   ```
+4. Once completed, EAS will provide a direct download link and QR code to install the `.apk` on any Android device!

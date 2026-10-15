@@ -64,3 +64,6 @@ CLIPBOARD_LOGGING_ENABLED = os.getenv("CLIPBOARD_LOGGING_ENABLED", "true").lower
 SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 8000
 
+# Optional Direct Cloud Download URL for Android APK (e.g., GitHub Releases, Cloudflare R2, Google Drive, EAS Build)
+APK_DOWNLOAD_URL = os.getenv("APK_DOWNLOAD_URL", "")
+

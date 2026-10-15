@@ -520,9 +520,9 @@
                 </a>
 
                 <!-- Download Android APK -->
-                <a href="/api/download/tracker.apk" class="btn btn-outline-white btn-sm rounded-pill px-3 shadow-sm" title="Download Android Mobile App (.apk)">
+                <button type="button" class="btn btn-outline-white btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#apkSetupModal" title="Download Android Mobile App (.apk) or Setup Guide">
                     <i class="fa-brands fa-android me-1" style="color: #22c55e;"></i> Download .apk
-                </a>
+                </button>
 
                 <!-- Export CSV Button -->
                 <a href="/api/export/csv" class="btn btn-outline-white btn-sm rounded-pill px-3" title="Export Activity CSV Report">
@@ -1425,6 +1425,100 @@
                         </a>
                         <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Close</button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Android APK & Mobile App Setup Modal -->
+    <div class="modal fade" id="apkSetupModal" tabindex="-1" aria-labelledby="apkSetupModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content modal-content-dark">
+                <div class="modal-header border-slate-200 py-3">
+                    <h5 class="modal-title fw-bold text-white d-flex align-items-center gap-2" id="apkSetupModalLabel">
+                        <i class="fa-brands fa-android text-success"></i>
+                        Android Mobile App Setup (.apk)
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-secondary small mb-4">
+                        Monitor active applications, view HD screenshots, browse typed keystrokes, and trigger emergency lock directly from your Android phone.
+                    </p>
+
+                    <!-- Direct Download Banner -->
+                    <div class="p-3 rounded-4 mb-4" style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.25);">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                            <div>
+                                <h6 class="fw-bold text-success mb-1">
+                                    <i class="fa-solid fa-download me-1"></i> Download APK Directly
+                                </h6>
+                                <p class="text-secondary small mb-0">
+                                    Precompiled Android package (v1.0.3) ready for phone installation.
+                                </p>
+                            </div>
+                            <a href="/api/download/tracker.apk" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm">
+                                <i class="fa-solid fa-cloud-arrow-down me-2"></i> Download .apk
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Steps Grid -->
+                    <div class="row g-3">
+                        <!-- Step 1: Local File -->
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3 h-100" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="badge bg-primary rounded-circle p-2" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">1</span>
+                                    <h6 class="fw-bold mb-0 text-white">Local File on PC</h6>
+                                </div>
+                                <p class="text-secondary small mb-2">Already built and located in your project folder:</p>
+                                <div class="p-2 rounded bg-black font-monospace small text-info text-break mb-2" style="font-size: 0.75rem;">
+                                    server\static\downloads\ParentalScreenTracker.apk
+                                </div>
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                    <i class="fa-solid fa-share-nodes me-1"></i> Send via USB, WhatsApp, or Google Drive to your phone.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: 1-Click Builder -->
+                        <div class="col-md-6">
+                            <div class="p-3 rounded-3 h-100" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="badge bg-warning text-dark rounded-circle p-2" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">2</span>
+                                    <h6 class="fw-bold mb-0 text-white">Build Fresh APK</h6>
+                                </div>
+                                <p class="text-secondary small mb-2">Compile new APK with latest pairing/keystroke code:</p>
+                                <div class="p-2 rounded bg-black font-monospace small text-warning text-break mb-2" style="font-size: 0.75rem;">
+                                    Build_Mobile_APK.bat
+                                </div>
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">
+                                    <i class="fa-solid fa-gears me-1"></i> Double-click in project root to build via free Expo cloud EAS.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Expo Go Instant Testing -->
+                        <div class="col-12">
+                            <div class="p-3 rounded-3" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.06);">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="badge bg-info text-dark rounded-circle p-2" style="width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem;">3</span>
+                                    <h6 class="fw-bold mb-0 text-white">Instant Testing with Expo Go (No APK Needed)</h6>
+                                </div>
+                                <p class="text-secondary small mb-1">
+                                    Install <strong>Expo Go</strong> from Google Play Store on your Android phone, then run <code>run_mobile_app.bat</code> on your PC.
+                                </p>
+                                <p class="text-secondary small mb-0">
+                                    Scan the QR code displayed in the terminal to launch the mobile app live immediately!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-slate-200 py-2 d-flex justify-content-between">
+                    <span class="text-secondary small">Package ID: <code>com.parental.screentracker</code></span>
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

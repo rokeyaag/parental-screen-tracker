@@ -1,11 +1,12 @@
 import sys
 import io
 import csv
+import os
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastapi import FastAPI, Request, Form, Body
-from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response, FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -264,17 +265,95 @@ async def download_tracker_exe():
 # --- Android Mobile App APK Download Endpoint ---
 @app.get("/api/download/tracker.apk")
 async def download_tracker_apk():
-    """Serves the compiled Android Mobile App APK."""
-    apk_path = Path(__file__).resolve().parent / "static" / "downloads" / "ParentalScreenTracker.apk"
-    if not apk_path.exists():
-        apk_path = Path(r"F:\ICTBD_02\soft\ParentalScreenTracker.apk")
-    if not apk_path.exists():
-        return JSONResponse(status_code=404, content={"error": "APK not found."})
-    return FileResponse(
-        path=str(apk_path),
-        filename="ParentalScreenTracker.apk",
-        media_type="application/vnd.android.package-archive"
-    )
+    """Serves or redirects to the compiled Android Mobile App APK."""
+    cloud_apk_url = getattr(config, "APK_DOWNLOAD_URL", "").strip() or os.getenv("APK_DOWNLOAD_URL", "").strip()
+
+    # 1. If explicit cloud download URL is configured, redirect instantly
+    if cloud_apk_url:
+        return RedirectResponse(url=cloud_apk_url, status_code=307)
+
+    # 2. Check local precompiled APK file candidates
+    local_candidates = [
+        Path(__file__).resolve().parent / "static" / "downloads" / "ParentalScreenTracker.apk",
+        Path(r"F:\ICTBD_02\soft\ParentalScreenTracker.apk"),
+        Path(__file__).resolve().parent.parent / "mobile_app" / "ParentalScreenTracker.apk",
+    ]
+    apk_path = next((p for p in local_candidates if p.exists()), None)
+
+    # Vercel serverless functions have a 4.5MB payload limit; large binaries cannot stream directly
+    is_vercel = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
+    if apk_path and not is_vercel:
+        return FileResponse(
+            path=str(apk_path),
+            filename="ParentalScreenTracker.apk",
+            media_type="application/vnd.android.package-archive"
+        )
+
+    # 3. If APK cannot be directly streamed, return an intuitive setup & installation guide
+    html_content = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android Mobile App Setup - Parental Screen Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body { background: #0b0f19; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 25px 15px; }
+        .setup-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 20px; max-width: 620px; width: 100%; padding: 32px; box-shadow: 0 25px 50px rgba(0,0,0,0.6); }
+        .badge-android { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.35); padding: 6px 14px; border-radius: 999px; font-size: 0.82rem; font-weight: 600; display: inline-block; }
+        .step-circle { width: 32px; height: 32px; border-radius: 50%; background: #3b82f6; color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+        .path-box { background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 14px; font-family: Consolas, monospace; font-size: 0.85rem; color: #38bdf8; word-break: break-all; }
+        .btn-action { font-weight: 600; border-radius: 999px; padding: 8px 20px; }
+    </style>
+</head>
+<body>
+    <div class="setup-card text-center">
+        <div class="mb-3">
+            <span class="badge-android"><i class="fa-brands fa-android me-1"></i> Android Mobile App Setup</span>
+        </div>
+        <h4 class="fw-bold mb-2">Parental Screen Tracker APK</h4>
+        <p class="text-secondary small mb-4">The Android companion app allows real-time child screen monitoring, live screenshot feeds, and instant emergency lock right from your phone.</p>
+
+        <div class="text-start mb-4">
+            <div class="d-flex align-items-start gap-3 mb-3">
+                <span class="step-circle">1</span>
+                <div>
+                    <h6 class="fw-bold mb-1">Local APK Available on Your PC</h6>
+                    <p class="text-secondary small mb-1">The precompiled <code>.apk</code> is saved in your local workspace:</p>
+                    <div class="path-box">server/static/downloads/ParentalScreenTracker.apk</div>
+                    <small class="text-info mt-1 d-block"><i class="fa-solid fa-circle-info me-1"></i> Connect your Android phone via USB cable or share via WhatsApp / Google Drive to install directly.</small>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-start gap-3 mb-3">
+                <span class="step-circle">2</span>
+                <div>
+                    <h6 class="fw-bold mb-1">Build Updated APK (1-Click Script)</h6>
+                    <p class="text-secondary small mb-1">To compile a fresh APK with all newly added pairing & keystroke features, run in project root:</p>
+                    <div class="path-box">Build_Mobile_APK.bat</div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-start gap-3">
+                <span class="step-circle">3</span>
+                <div>
+                    <h6 class="fw-bold mb-1">Run Instantly with Expo Go (No APK Needed)</h6>
+                    <p class="text-secondary small mb-1">Download <strong>Expo Go</strong> from Google Play Store on your Android phone, then run:</p>
+                    <div class="path-box">run_mobile_app.bat</div>
+                    <small class="text-secondary mt-1 d-block">Scan the terminal QR code to open the full app live on your phone without building an APK!</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-2">
+            <a href="/" class="btn btn-outline-light btn-action"><i class="fa-solid fa-arrow-left me-1"></i> Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>
+"""
+    return HTMLResponse(content=html_content, status_code=200)
 
 # --- React Native Mobile App API Endpoints ---
 @app.get("/api/mobile/dashboard")

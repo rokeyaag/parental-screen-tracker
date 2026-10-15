@@ -135,6 +135,17 @@ python windows_client_entry.py
 ```
 Or double-click `Start-Tracker.bat` to launch the background service with automatic Windows Startup registration.
 
+### 6. Android Mobile App & APK Setup
+Manage and monitor child devices directly from an Android smartphone:
+- **Run Live with Expo Go (Instant, No APK Build Needed):**
+  1. Download **Expo Go** from the Google Play Store on your phone.
+  2. Double-click `run_mobile_app.bat` on your PC.
+  3. Scan the QR code displayed in the terminal with Expo Go to launch the app live.
+- **Precompiled APK:**
+  A ready-to-install `.apk` is located at `server/static/downloads/ParentalScreenTracker.apk` and can be downloaded directly from the Web Dashboard (**Download .apk**).
+- **1-Click Cloud APK Builder:**
+  Double-click `Build_Mobile_APK.bat` in the root project folder to compile a fresh `.apk` with all latest pairing and screenshot features using free Expo EAS Cloud Build.
+
 ---
 
 ## 🚀 SaaS Multi-Tenant & Device Pairing (Commercial Ready)
