@@ -48,8 +48,8 @@ PARENT_PIN = os.getenv("PARENT_PIN", "1234")
 
 # Screenshot Monitoring Settings
 SCREENSHOT_ENABLED = os.getenv("SCREENSHOT_ENABLED", "true").lower() == "true"
-SCREENSHOT_INTERVAL_SECONDS = int(os.getenv("SCREENSHOT_INTERVAL_SECONDS", "180"))  # Auto-capture every 3 minutes
-SCREENSHOT_MAX_STORED = int(os.getenv("SCREENSHOT_MAX_STORED", "50"))  # Retain latest 50 screenshots per device
+SCREENSHOT_INTERVAL_SECONDS = int(os.getenv("SCREENSHOT_INTERVAL_SECONDS", "15"))  # Auto-capture every 15 seconds
+SCREENSHOT_MAX_STORED = int(os.getenv("SCREENSHOT_MAX_STORED", "60"))  # Retain latest 60 screenshots per device
 SCREENSHOT_QUALITY = int(os.getenv("SCREENSHOT_QUALITY", "65"))  # JPEG quality 65% for lean storage (~50KB)
 SCREENSHOT_WIDTH = int(os.getenv("SCREENSHOT_WIDTH", "1024"))
 SCREENSHOT_HEIGHT = int(os.getenv("SCREENSHOT_HEIGHT", "576"))

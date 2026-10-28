@@ -9,18 +9,50 @@ import winreg
 import ctypes
 from pathlib import Path
 
-# Redirect stdout/stderr if frozen or running under pythonw to avoid NoneType errors and maintain local log file
-if getattr(sys, 'frozen', False) or sys.stdout is None or sys.stderr is None or "pythonw" in sys.executable.lower():
-    appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(Path.home())
-    log_dir = Path(appdata) / "ParentalScreenTracker"
-    try:
-        log_dir.mkdir(parents=True, exist_ok=True)
-        log_file = open(log_dir / "client.log", "a", encoding="utf-8", buffering=1)
-        sys.stdout = log_file
-        sys.stderr = log_file
-    except Exception:
-        sys.stdout = open(os.devnull, "w")
-        sys.stderr = open(os.devnull, "w")
+# Ensure logs are saved to client.log with immediate flush
+class AutoFlushLogger:
+    def __init__(self, filename, original_stream=None):
+        self.original_stream = original_stream
+        try:
+            self.file = open(filename, "a", encoding="utf-8")
+        except Exception:
+            self.file = None
+
+    def write(self, message):
+        if self.original_stream:
+            try:
+                self.original_stream.write(message)
+                self.original_stream.flush()
+            except Exception:
+                pass
+        if self.file:
+            try:
+                self.file.write(message)
+                self.file.flush()
+            except Exception:
+                pass
+
+    def flush(self):
+        if self.original_stream:
+            try:
+                self.original_stream.flush()
+            except Exception:
+                pass
+        if self.file:
+            try:
+                self.file.flush()
+            except Exception:
+                pass
+
+appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(Path.home())
+log_dir = Path(appdata) / "ParentalScreenTracker"
+try:
+    log_dir.mkdir(parents=True, exist_ok=True)
+    client_log_path = log_dir / "client.log"
+    sys.stdout = AutoFlushLogger(client_log_path, sys.stdout)
+    sys.stderr = AutoFlushLogger(client_log_path, sys.stderr)
+except Exception:
+    pass
 
 # Ensure root folder is in sys.path
 BASE_DIR = Path(__file__).resolve().parent

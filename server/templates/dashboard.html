@@ -710,6 +710,50 @@
             
             <!-- TAB 1: OVERVIEW & CHARTS -->
             <div class="tab-pane fade show active" id="tab-overview">
+                {% if latest_screenshot %}
+                <!-- Quick Live Screenshot on Overview -->
+                <div class="card-custom p-3 p-md-4 mb-4 border border-danger border-opacity-25" style="background: linear-gradient(135deg, rgba(239, 35, 60, 0.03) 0%, #ffffff 100%);">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-danger rounded-pill px-3 py-1 pulse"><i class="fa-solid fa-circle me-1" style="font-size: 8px;"></i> LIVE SCREEN</span>
+                            <h5 class="fw-bold mb-0 text-dark">Live Child Screen (পর্দার সরাসরি ছবি)</h5>
+                            <span class="badge bg-light text-secondary border small" id="overviewScreenTime">{{ latest_screenshot.time_str }}</span>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold" onclick="document.getElementById('tab-screenshots-btn').click();">
+                            <i class="fa-solid fa-expand me-1"></i> View Full Gallery & Controls (সকল ছবি দেখুন)
+                        </button>
+                    </div>
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-7 col-lg-8">
+                            <div class="screenshot-frame shadow-sm" style="cursor: pointer; max-height: 320px; overflow: hidden; border-radius: 12px;" onclick="openScreenshotModal('{{ latest_screenshot.image_data }}', '{{ latest_screenshot.window_title|e }}', '{{ latest_screenshot.process_name }}', '{{ latest_screenshot.time_str }}', '{{ latest_screenshot.category_name }}')">
+                                <img src="{{ latest_screenshot.image_data }}" id="overviewLatestScreenshotImg" alt="Live Child Screen" class="w-100" style="object-fit: contain; background: #0f172a; max-height: 320px;" />
+                            </div>
+                        </div>
+                        <div class="col-md-5 col-lg-4">
+                            <div class="bg-white p-3 rounded-3 border border-slate-200">
+                                <div class="small text-secondary mb-1">Active App / Process:</div>
+                                <div class="fw-bold text-dark fs-6 mb-2 d-flex align-items-center gap-2">
+                                    <span class="badge bg-warning text-dark" id="overviewScreenCat">{{ latest_screenshot.category_name }}</span>
+                                    <span id="overviewScreenApp">{{ latest_screenshot.process_name }}</span>
+                                </div>
+                                <div class="small text-secondary mb-1">Window Title:</div>
+                                <div class="small text-dark fw-semibold text-truncate mb-3" id="overviewScreenTitle" title="{{ latest_screenshot.window_title }}">
+                                    {{ latest_screenshot.window_title or 'Untitled Window' }}
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-red btn-sm rounded-pill fw-bold" onclick="requestScreenshot()">
+                                        <i class="fa-solid fa-camera me-1"></i> Capture Now (ছবি তুলুন)
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-sm rounded-pill" onclick="document.getElementById('tab-screenshots-btn').click();">
+                                        <i class="fa-solid fa-images me-1"></i> Open Screenshots Tab
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <div class="row g-4 mb-4">
                     <!-- Donut Chart -->
                     <div class="col-lg-5">
@@ -1753,8 +1797,8 @@
                 const data = await res.json();
                 if (data.success) {
                     showNotification('Capture command dispatched! Capturing in ~3 seconds...');
-                    setTimeout(fetchLatestScreenshot, 3500);
-                    setTimeout(fetchLatestScreenshot, 7000);
+                    setTimeout(() => fetchLatestScreenshot(true), 3500);
+                    setTimeout(() => fetchLatestScreenshot(true), 7000);
                 }
             } catch (err) {
                 showNotification('Failed to request screenshot: ' + err);
@@ -1765,12 +1809,17 @@
             }
         }
 
-        async function fetchLatestScreenshot() {
+        let lastSeenScreenshotTime = '{{ latest_screenshot.time_str if latest_screenshot else "" }}';
+        async function fetchLatestScreenshot(isManual = false) {
             try {
                 const res = await fetch('/api/screenshots/latest');
                 if (!res.ok) return;
                 const data = await res.json();
                 if (data && data.image_data) {
+                    const isNew = data.time_str && data.time_str !== lastSeenScreenshotTime;
+                    lastSeenScreenshotTime = data.time_str;
+
+                    // Update Main Screenshots Tab
                     const img = document.getElementById('latestScreenshotImg');
                     if (img) img.src = data.image_data;
                     const cat = document.getElementById('latestScreenCat');
@@ -1781,10 +1830,29 @@
                     if (title) title.innerText = data.window_title || '';
                     const time = document.getElementById('latestScreenTime');
                     if (time) time.innerText = data.time_str || '';
-                    showNotification('New screenshot loaded successfully!');
+
+                    // Update Overview Tab Preview Card
+                    const overviewImg = document.getElementById('overviewLatestScreenshotImg');
+                    if (overviewImg) overviewImg.src = data.image_data;
+                    const oCat = document.getElementById('overviewScreenCat');
+                    if (oCat) oCat.innerText = data.category_name || 'Other';
+                    const oApp = document.getElementById('overviewScreenApp');
+                    if (oApp) oApp.innerText = data.process_name || 'unknown';
+                    const oTitle = document.getElementById('overviewScreenTitle');
+                    if (oTitle) { oTitle.innerText = data.window_title || 'Untitled Window'; oTitle.title = data.window_title || ''; }
+                    const oTime = document.getElementById('overviewScreenTime');
+                    if (oTime) oTime.innerText = data.time_str || '';
+
+                    const badge = document.getElementById('screenshotNewBadge');
+                    if (badge) badge.style.display = 'inline-block';
+
+                    if (isManual || isNew) {
+                        if (isManual) showNotification('New screenshot loaded successfully!');
+                    }
                 }
             } catch (e) {}
         }
+        setInterval(() => fetchLatestScreenshot(false), 15000);
 
         function openScreenshotModal(imgSrc, title, process, timeStr, category) {
             document.getElementById('modalScreenshotImg').src = imgSrc;

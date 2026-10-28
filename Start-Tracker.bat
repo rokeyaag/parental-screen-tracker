@@ -5,12 +5,12 @@ echo    Parental Screen Tracker - Starting Background Client...
 echo ======================================================================
 echo.
 
-set BASE_DIR=%~dp0
-set PYTHONW="%BASE_DIR%.venv\Scripts\pythonw.exe"
-set SCRIPT="%BASE_DIR%windows_client_entry.py"
+set "BASE_DIR=%~dp0"
+set "PYTHONW=%BASE_DIR%.venv\Scripts\pythonw.exe"
+set "SCRIPT=%BASE_DIR%windows_client_entry.py"
 
-if exist %PYTHONW% (
-    start "" %PYTHONW% %SCRIPT%
+if exist "%PYTHONW%" (
+    start "" "%PYTHONW%" "%SCRIPT%" --silent
     echo [OK] Parental Screen Tracker is now running silently in the background!
     echo Windows Smart App Control allows this because pythonw is digitally signed.
     echo The tracker will also automatically launch on Windows startup.
@@ -19,4 +19,5 @@ if exist %PYTHONW% (
 )
 
 echo.
-timeout /t 4
+timeout /t 3 >nul 2>&1
+

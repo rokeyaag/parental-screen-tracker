@@ -132,7 +132,7 @@ class TrackerClient:
                             on_demand = database.check_and_clear_screenshot_request()
 
                         time_due = (now - self.last_screenshot_time) >= config.SCREENSHOT_INTERVAL_SECONDS
-                        app_changed = (self.last_screenshot_app != pname) and ((now - self.last_screenshot_time) >= 60)
+                        app_changed = (self.last_screenshot_app != pname) and ((now - self.last_screenshot_time) >= 10)
 
                         if on_demand or time_due or app_changed:
                             self.last_screenshot_time = now
