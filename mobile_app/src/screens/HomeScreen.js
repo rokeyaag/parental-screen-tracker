@@ -14,31 +14,67 @@ import {
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { api } from '../api/client';
+import { useDevices } from '../context/DeviceContext';
 
 export default function HomeScreen() {
+  const {
+    devices,
+    setDevices,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    selectedDevice,
+    switchDevice,
+    refreshDevices,
+  } = useDevices();
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [capturingScreen, setCapturingScreen] = useState(false);
   const [screenshotModalVisible, setScreenshotModalVisible] = useState(false);
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
+
+  // Sub-device Modals
+  const [switcherModalVisible, setSwitcherModalVisible] = useState(false);
   const [pairingModalVisible, setPairingModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+
+  // New sub-device form
+  const [selectedDeviceType, setSelectedDeviceType] = useState('Laptop'); // 'Laptop', 'Desktop', 'Mobile'
   const [newDeviceName, setNewDeviceName] = useState('');
   const [newChildName, setNewChildName] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
   const [pairingLoading, setPairingLoading] = useState(false);
 
+  // Editing device
+  const [editingDevice, setEditingDevice] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editChild, setEditChild] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+
+  const getDeviceIcon = (osName, deviceName) => {
+    const s = `${osName || ''} ${deviceName || ''}`.toLowerCase();
+    if (s.includes('phone') || s.includes('mobile') || s.includes('android') || s.includes('ios')) return '📱';
+    if (s.includes('desktop') || s.includes('pc') || s.includes('computer')) return '🖥️';
+    return '💻';
+  };
+
   const handleGenerateCode = async () => {
     if (!newDeviceName.trim()) {
-      Alert.alert('Required', 'Please enter a device name (e.g. Study PC).');
+      Alert.alert('Required', 'Please enter a device name (e.g. Rahim Laptop, Sammy Phone).');
       return;
     }
     setPairingLoading(true);
     try {
-      const res = await api.generatePairingCode(newDeviceName.trim(), newChildName.trim());
+      const res = await api.generatePairingCode(newDeviceName.trim(), newChildName.trim(), selectedDeviceType);
       if (res.success && res.pairing_code) {
         setGeneratedCode(res.pairing_code);
+        if (res.device_id) {
+          setSelectedDeviceId(res.device_id);
+        }
+        refreshDevices();
       } else {
         Alert.alert('Error', 'Could not generate code.');
       }
@@ -49,17 +85,75 @@ export default function HomeScreen() {
     }
   };
 
+  const handleDeleteDevice = (dev) => {
+    Alert.alert(
+      'Unpair Sub-Device (সাব-ডিভাইস রিমুভ)',
+      `Are you sure you want to remove '${dev.device_name}' from this Main Controller? All recorded activity for this device will be erased.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unpair & Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.deleteDevice(dev.id);
+              Alert.alert('Device Removed', `'${dev.device_name}' has been successfully removed.`);
+              if (selectedDeviceId === dev.id) {
+                setSelectedDeviceId(null);
+              }
+              refreshDevices();
+              loadData();
+            } catch (err) {
+              Alert.alert('Error', err.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleStartEdit = (dev) => {
+    setEditingDevice(dev);
+    setEditName(dev.device_name || '');
+    setEditChild(dev.assigned_child || '');
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingDevice || !editName.trim()) return;
+    setEditLoading(true);
+    try {
+      await api.updateDevice(editingDevice.id, editName.trim(), editChild.trim(), editingDevice.os_name);
+      setEditModalVisible(false);
+      refreshDevices();
+      loadData();
+      Alert.alert('Updated', 'Sub-device info updated successfully.');
+    } catch (err) {
+      Alert.alert('Error', err.message);
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
   const loadData = useCallback(async () => {
     try {
-      const res = await api.getDashboard();
+      const res = await api.getDashboard(selectedDeviceId);
       setData(res);
+      setLoadError(null);
+      if (res?.devices && res.devices.length > 0 && devices.length === 0) {
+        setDevices(res.devices);
+        if (!selectedDeviceId) {
+          setSelectedDeviceId(res.devices[0].id);
+        }
+      }
     } catch (err) {
       console.log('Load Error:', err.message);
+      setLoadError(err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [selectedDeviceId, setDevices, setSelectedDeviceId, devices.length]);
 
   useEffect(() => {
     loadData();
@@ -69,16 +163,17 @@ export default function HomeScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
+    refreshDevices();
     loadData();
   };
 
   const handleStudyToggle = async () => {
     setActionLoading(true);
     try {
-      const res = await api.toggleStudyMode();
+      const res = await api.toggleStudyMode(selectedDeviceId);
       Alert.alert(
         'Study Mode',
-        res.study_mode_active ? 'Study Mode activated!' : 'Study Mode disabled.'
+        res.study_mode_active ? 'Study Mode activated for this sub-device!' : 'Study Mode disabled.'
       );
       loadData();
     } catch (e) {
@@ -91,10 +186,10 @@ export default function HomeScreen() {
   const handleLockToggle = async () => {
     setActionLoading(true);
     try {
-      const res = await api.toggleEmergencyLock();
+      const res = await api.toggleEmergencyLock(selectedDeviceId);
       Alert.alert(
         'Emergency Lock',
-        res.emergency_lock ? 'Laptop screen locked!' : 'Laptop unlocked.'
+        res.emergency_lock ? 'Screen locked on this sub-device!' : 'Screen unlocked on this sub-device.'
       );
       loadData();
     } catch (e) {
@@ -107,8 +202,8 @@ export default function HomeScreen() {
   const handleRequestScreenshot = async () => {
     setCapturingScreen(true);
     try {
-      await api.requestScreenshot();
-      Alert.alert('Capture Dispatched', 'Taking live screenshot on child PC in ~3 seconds.');
+      await api.requestScreenshot(selectedDeviceId);
+      Alert.alert('Capture Dispatched', 'Taking live screenshot on sub-device in ~3 seconds.');
       setTimeout(loadData, 3500);
       setTimeout(loadData, 7000);
     } catch (e) {
@@ -127,7 +222,32 @@ export default function HomeScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={colors.accentYellow} />
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
+        <Text style={styles.loadingText}>Loading Main Controller...</Text>
+      </View>
+    );
+  }
+
+  if (!loading && !data && loadError) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={{ fontSize: 44, marginBottom: 12 }}>⚠️</Text>
+        <Text style={{ fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 4 }}>Cannot Reach Server</Text>
+        <Text style={{ fontSize: 14, color: '#b45309', fontWeight: '700', marginBottom: 10 }}>সার্ভারে কানেক্ট হতে পারছে না</Text>
+        <Text style={{ fontSize: 12, color: '#64748b', textAlign: 'center', marginHorizontal: 20, marginBottom: 18 }}>
+          {loadError}
+        </Text>
+        <TouchableOpacity
+          style={{ backgroundColor: '#0f172a', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 }}
+          onPress={() => {
+            setLoading(true);
+            loadData();
+          }}
+        >
+          <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 14 }}>🔄 Retry Connection (পুনরায় চেষ্টা করুন)</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', marginTop: 18, lineHeight: 18, marginHorizontal: 20 }}>
+          টিপস: পিসিতে start.bat চালু আছে কিনা দেখুন, এবং মোবাইল ও পিসি একই ওয়াইফাইতে যুক্ত কিনা নিশ্চিত করুন।
+        </Text>
       </View>
     );
   }
@@ -145,24 +265,80 @@ export default function HomeScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.accentYellow]} />
       }
     >
-      {/* Header Info */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Parental Monitor</Text>
-          <Text style={styles.headerSub}>
-            Device: {device.name || 'Children PC'} • {device.assigned_child || 'Student'}
-          </Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <TouchableOpacity
-            style={styles.addPcBtn}
-            onPress={() => {
-              setGeneratedCode('');
-              setPairingModalVisible(true);
-            }}
-          >
-            <Text style={styles.addPcBtnText}>+ Pair PC</Text>
+      {loadError && (
+        <View style={{ backgroundColor: '#fef3c7', borderRadius: 8, padding: 8, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={{ fontSize: 11, color: '#b45309', fontWeight: '600', flex: 1 }}>⚠️ Server connection issue: {loadError}</Text>
+          <TouchableOpacity onPress={onRefresh}>
+            <Text style={{ fontSize: 11, color: '#b45309', fontWeight: '800', marginLeft: 8 }}>Retry</Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {/* 👑 Master Controller Top Bar */}
+      <View style={styles.masterHeaderRow}>
+        <View style={styles.masterBadgeWrap}>
+          <Text style={styles.masterCrown}>👑</Text>
+          <View>
+            <Text style={styles.masterBadgeTitle}>MAIN CONTROLLER</Text>
+            <Text style={styles.masterBadgeSub}>Parent Super-Admin (অভিভাবক কন্ট্রোলার)</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.addSubBtn}
+          onPress={() => {
+            setGeneratedCode('');
+            setSelectedDeviceType('Laptop');
+            setNewDeviceName('');
+            setNewChildName('');
+            setPairingModalVisible(true);
+          }}
+        >
+          <Text style={styles.addSubBtnText}>+ Add Sub</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Active Sub-Device Selector Card */}
+      <TouchableOpacity
+        style={styles.activeDeviceCard}
+        activeOpacity={0.8}
+        onPress={() => setSwitcherModalVisible(true)}
+      >
+        <View style={styles.activeDeviceLeft}>
+          <View style={styles.deviceIconCircle}>
+            <Text style={styles.deviceIconText}>
+              {getDeviceIcon(device.os_name, device.name)}
+            </Text>
+          </View>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.activeDeviceLabel}>CONTROLLING SUB-DEVICE:</Text>
+              <View
+                style={[
+                  styles.deviceTypePill,
+                  { backgroundColor: (device.os_name?.toLowerCase().includes('mobile') || device.os_name?.toLowerCase().includes('android')) ? '#eff6ff' : '#f0fdf4' }
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.deviceTypePillText,
+                    { color: (device.os_name?.toLowerCase().includes('mobile') || device.os_name?.toLowerCase().includes('android')) ? '#2563eb' : '#16a34a' }
+                  ]}
+                >
+                  {device.os_name || 'PC'}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.activeDeviceName} numberOfLines={1}>
+              {device.name || 'Select a Sub-Device'}
+            </Text>
+            <Text style={styles.activeDeviceChild} numberOfLines={1}>
+              Child: {device.assigned_child || 'Unassigned'}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.activeDeviceRight}>
           <View
             style={[
               styles.statusPill,
@@ -184,8 +360,12 @@ export default function HomeScreen() {
               {device.online ? 'Online' : 'Offline'}
             </Text>
           </View>
+
+          <View style={styles.switchButtonSmall}>
+            <Text style={styles.switchButtonSmallText}>⇄ Switch</Text>
+          </View>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Live Active App Ticker */}
       <View style={styles.liveCard}>
@@ -295,7 +475,10 @@ export default function HomeScreen() {
             {/* Horizontal Recent Screenshots Strip */}
             {data?.recent_screenshots?.length > 1 ? (
               <View style={styles.galleryStripWrapper}>
-                <Text style={styles.galleryStripTitle}>Recent Captures</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <Text style={styles.galleryStripTitle}>Recent Captures (ব্যাকআপ স্ন্যাপশট)</Text>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b' }}>{data.recent_screenshots.length} saved</Text>
+                </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.galleryStripScroll}>
                   {data.recent_screenshots.map((s, idx) => (
                     <TouchableOpacity
@@ -491,7 +674,124 @@ export default function HomeScreen() {
         </View>
       ))}
 
-      {/* SaaS Device Pairing Modal */}
+      {/* Modal 1: Sub-Devices Switcher & Management Modal */}
+      <Modal
+        visible={switcherModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSwitcherModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.switcherModalCard}>
+            <View style={styles.modalHeaderRow}>
+              <View>
+                <Text style={styles.switcherModalTitle}>Sub-Devices (সাব-ডিভাইস সমূহ)</Text>
+                <Text style={styles.switcherModalSub}>
+                  Select a device to monitor & control ({devices.length} registered):
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setSwitcherModalVisible(false)}
+              >
+                <Text style={styles.modalCloseBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 380, marginTop: 10 }}>
+              {devices.length === 0 ? (
+                <View style={styles.emptyDevicesBox}>
+                  <Text style={styles.emptyDevicesText}>No sub-devices paired yet.</Text>
+                  <Text style={styles.emptyDevicesSub}>Add your first Laptop, Desktop or Child Mobile below!</Text>
+                </View>
+              ) : (
+                devices.map((dev) => {
+                  const isCurrent = dev.id === device.id;
+                  const isOnline = !!dev.is_online;
+                  return (
+                    <TouchableOpacity
+                      key={dev.id}
+                      style={[styles.deviceItemCard, isCurrent && styles.deviceItemCardActive]}
+                      onPress={() => {
+                        switchDevice(dev.id);
+                        setSwitcherModalVisible(false);
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.deviceItemLeft}>
+                        <View style={styles.deviceItemIconWrap}>
+                          <Text style={styles.deviceItemIcon}>
+                            {getDeviceIcon(dev.os_name, dev.device_name)}
+                          </Text>
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 10 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.deviceItemName} numberOfLines={1}>
+                              {dev.device_name}
+                            </Text>
+                            {isCurrent && (
+                              <View style={styles.activeBadgeSmall}>
+                                <Text style={styles.activeBadgeSmallText}>ACTIVE</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.deviceItemChild} numberOfLines={1}>
+                            Child: {dev.assigned_child || 'Unassigned'} • {dev.os_name || 'PC'}
+                          </Text>
+                          <Text style={styles.deviceItemLastSeen}>
+                            Last seen: {dev.last_seen_str || 'Recently'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.deviceItemRight}>
+                        <View
+                          style={[
+                            styles.statusDotSmall,
+                            { backgroundColor: isOnline ? colors.onlineGreen : colors.offlineRed }
+                          ]}
+                        />
+                        <TouchableOpacity
+                          style={styles.actionIconBtn}
+                          onPress={() => handleStartEdit(dev)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Text style={{ fontSize: 13 }}>✏️</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.actionIconBtn}
+                          onPress={() => handleDeleteDevice(dev)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Text style={{ fontSize: 13 }}>🗑️</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.addDeviceFromSwitcherBtn}
+              onPress={() => {
+                setSwitcherModalVisible(false);
+                setGeneratedCode('');
+                setSelectedDeviceType('Laptop');
+                setNewDeviceName('');
+                setNewChildName('');
+                setPairingModalVisible(true);
+              }}
+            >
+              <Text style={styles.addDeviceFromSwitcherBtnText}>
+                ➕ Add New Sub-Device (ল্যাপটপ / ডেক্সটপ / মোবাইল)
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal 2: Add New Sub-Device Wizard Modal */}
       <Modal
         visible={pairingModalVisible}
         transparent={true}
@@ -500,46 +800,98 @@ export default function HomeScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.pairingModalCard}>
-            <Text style={styles.pairingModalTitle}>Link a Child Computer (পিসি যুক্ত করুন)</Text>
-            <Text style={styles.pairingModalSub}>
-              Generate a 6-digit code to connect a laptop or desktop to your parental account.
-            </Text>
+            <View style={styles.modalHeaderRow}>
+              <View>
+                <Text style={styles.pairingModalTitle}>Add New Sub-Device (নতুন সাব-ডিভাইস)</Text>
+                <Text style={styles.pairingModalSub}>
+                  Connect a Laptop, Desktop or Child Mobile to your Main Controller.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setPairingModalVisible(false)}
+              >
+                <Text style={styles.modalCloseBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
 
             {generatedCode ? (
               <View style={styles.codeContainer}>
                 <Text style={styles.codeLabel}>YOUR 6-DIGIT PAIRING CODE:</Text>
                 <Text style={styles.codeValue}>{generatedCode}</Text>
-                <Text style={styles.codeInstructions}>
-                  ১. বাচ্চার ল্যাপটপে ট্র্যাকার অ্যাপ চালু করুন।{'\n'}
-                  ২. 'Enter 6-digit Pairing Code' বক্সে এই কোডটি দিন।{'\n'}
-                  ৩. কোডটির মেয়াদ ১৫ মিনিট। কোড সাবমিট করা মাত্রই ল্যাপটপটি আপনার অ্যাকাউন্টের সাথে আজীবনের জন্য কানেক্ট হয়ে যাবে।
-                </Text>
+                
+                <View style={styles.codeInstructions}>
+                  <Text style={styles.instHeader}>
+                    {selectedDeviceType === 'Mobile' ? '📱 বাচ্চার মোবাইল কানেক্ট করার নিয়ম:' : '💻 বাচ্চার ল্যাপটপ বা ডেক্সটপ কানেক্ট করার নিয়ম:'}
+                  </Text>
+                  {selectedDeviceType === 'Mobile' ? (
+                    <Text style={styles.instText}>
+                      ১. বাচ্চার মোবাইলে এই Parental Screen Tracker অ্যাপটি ইন্সটল করুন।{'\n'}
+                      ২. Settings থেকে 'Switch to Sub-Device Mode' চাপুন অথবা প্রথমবার অ্যাপ খুললে 'Connect as Sub-Device' নির্বাচন করুন।{'\n'}
+                      ৩. এই ৬-সংখ্যার কোডটি দিয়ে Submit চাপলেই মোবাইলটি আপনার মেইন কন্ট্রোলারের সাথে যুক্ত হয়ে যাবে।
+                    </Text>
+                  ) : (
+                    <Text style={styles.instText}>
+                      ১. বাচ্চার ল্যাপটপ বা ডেক্সটপে Parental Screen Tracker চালু করুন।{'\n'}
+                      ২. স্ক্রিনের প্রম্পট বক্সে এই ৬-সংখ্যার কোডটি লিখুন, অথবা কমান্ড দিন:{'\n'}
+                      <Text style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>ParentalScreenTracker.exe --pair {generatedCode}</Text>{'\n'}
+                      ৩. কোডটির মেয়াদ ১৫ মিনিট। কোড সাবমিট করা মাত্রই কম্পিউটারটি আজীবনের জন্য কানেক্ট হয়ে যাবে।
+                    </Text>
+                  )}
+                </View>
+
                 <TouchableOpacity
                   style={styles.pairingDoneBtn}
                   onPress={() => {
                     setPairingModalVisible(false);
                     setGeneratedCode('');
+                    refreshDevices();
                     loadData();
                   }}
                 >
-                  <Text style={styles.pairingDoneBtnText}>Done (সম্পন্ন হয়েছে)</Text>
+                  <Text style={styles.pairingDoneBtnText}>Done & Refresh (সম্পন্ন হয়েছে)</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={{ marginTop: 14 }}>
-                <Text style={styles.inputLabel}>Device Name (যেমন: Rahim's Laptop):</Text>
+                <Text style={styles.inputLabel}>1. Select Device Type (ডিভাইসের ধরন):</Text>
+                <View style={styles.deviceTypeSelectorRow}>
+                  {[
+                    { key: 'Laptop', label: 'Laptop', icon: '💻' },
+                    { key: 'Desktop', label: 'Desktop PC', icon: '🖥️' },
+                    { key: 'Mobile', label: 'Child Mobile', icon: '📱' },
+                  ].map((t) => {
+                    const isSelected = selectedDeviceType === t.key;
+                    return (
+                      <TouchableOpacity
+                        key={t.key}
+                        style={[styles.typeOptionBtn, isSelected && styles.typeOptionBtnActive]}
+                        onPress={() => setSelectedDeviceType(t.key)}
+                      >
+                        <Text style={styles.typeOptionIcon}>{t.icon}</Text>
+                        <Text style={[styles.typeOptionLabel, isSelected && styles.typeOptionLabelActive]}>
+                          {t.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                <Text style={[styles.inputLabel, { marginTop: 12 }]}>
+                  2. Device Name ({selectedDeviceType === 'Mobile' ? 'মোবাইলের নাম' : 'কম্পিউটারের নাম'}):
+                </Text>
                 <TextInput
                   style={styles.pairingInput}
-                  placeholder="e.g. Study PC, Rahim's Laptop"
+                  placeholder={selectedDeviceType === 'Mobile' ? 'e.g. Rahim Phone' : 'e.g. Study Laptop, Karim PC'}
                   placeholderTextColor="#999"
                   value={newDeviceName}
                   onChangeText={setNewDeviceName}
                 />
 
-                <Text style={[styles.inputLabel, { marginTop: 10 }]}>Child's Name (সন্তানের নাম):</Text>
+                <Text style={[styles.inputLabel, { marginTop: 10 }]}>3. Child's Name (সন্তানের নাম):</Text>
                 <TextInput
                   style={styles.pairingInput}
-                  placeholder="e.g. Ayan, Rahim"
+                  placeholder="e.g. Samiul, Ayan, Rahim"
                   placeholderTextColor="#999"
                   value={newChildName}
                   onChangeText={setNewChildName}
@@ -553,7 +905,9 @@ export default function HomeScreen() {
                   {pairingLoading ? (
                     <ActivityIndicator color="#000" size="small" />
                   ) : (
-                    <Text style={styles.generateCodeBtnText}>Generate 6-Digit Code (কোড তৈরি করুন)</Text>
+                    <Text style={styles.generateCodeBtnText}>
+                      Generate 6-Digit Code (পেয়ারিং কোড তৈরি করুন)
+                    </Text>
                   )}
                 </TouchableOpacity>
 
@@ -569,6 +923,56 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
+      {/* Modal 3: Edit Sub-Device Info Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.pairingModalCard}>
+            <Text style={styles.pairingModalTitle}>Edit Sub-Device (তথ্য পরিবর্তন)</Text>
+            <Text style={styles.pairingModalSub}>Update device name and assigned child.</Text>
+
+            <View style={{ marginTop: 14 }}>
+              <Text style={styles.inputLabel}>Device Name:</Text>
+              <TextInput
+                style={styles.pairingInput}
+                value={editName}
+                onChangeText={setEditName}
+              />
+
+              <Text style={[styles.inputLabel, { marginTop: 10 }]}>Assigned Child:</Text>
+              <TextInput
+                style={styles.pairingInput}
+                value={editChild}
+                onChangeText={setEditChild}
+              />
+
+              <TouchableOpacity
+                style={[styles.generateCodeBtn, { backgroundColor: '#0284c7' }]}
+                onPress={handleSaveEdit}
+                disabled={editLoading}
+              >
+                {editLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={[styles.generateCodeBtnText, { color: '#ffffff' }]}>Save Changes (সংরক্ষণ করুন)</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -579,6 +983,315 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     padding: 16,
+  },
+  masterHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingTop: 4,
+  },
+  masterBadgeWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  masterCrown: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  masterBadgeTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0f172a',
+    letterSpacing: 0.5,
+  },
+  masterBadgeSub: {
+    fontSize: 11,
+    color: '#d97706',
+    fontWeight: '700',
+  },
+  addSubBtn: {
+    backgroundColor: '#0f172a',
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+  },
+  addSubBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  activeDeviceCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  activeDeviceLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
+  },
+  deviceIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    flexShrink: 0,
+  },
+  deviceIconText: {
+    fontSize: 22,
+  },
+  activeDeviceLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748b',
+    letterSpacing: 0.5,
+  },
+  deviceTypePill: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  deviceTypePillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  activeDeviceName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginTop: 2,
+  },
+  activeDeviceChild: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  activeDeviceRight: {
+    alignItems: 'flex-end',
+    gap: 4,
+    flexShrink: 0,
+  },
+  switchButtonSmall: {
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+  },
+  switchButtonSmallText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  switcherModalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  switcherModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  switcherModalSub: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  modalCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseBtnText: {
+    fontSize: 14,
+    color: '#475569',
+    fontWeight: 'bold',
+  },
+  emptyDevicesBox: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyDevicesText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  emptyDevicesSub: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  deviceItemCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  deviceItemCardActive: {
+    borderColor: '#0284c7',
+    backgroundColor: '#f0f9ff',
+  },
+  deviceItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  deviceItemIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  deviceItemIcon: {
+    fontSize: 18,
+  },
+  deviceItemName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  activeBadgeSmall: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  activeBadgeSmallText: {
+    color: '#ffffff',
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  deviceItemChild: {
+    fontSize: 11,
+    color: '#475569',
+  },
+  deviceItemLastSeen: {
+    fontSize: 10,
+    color: '#94a3b8',
+    marginTop: 1,
+  },
+  deviceItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 6,
+  },
+  statusDotSmall: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  actionIconBtn: {
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  addDeviceFromSwitcherBtn: {
+    backgroundColor: '#0f172a',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  addDeviceFromSwitcherBtnText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  deviceTypeSelectorRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  typeOptionBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+  },
+  typeOptionBtnActive: {
+    borderColor: '#0284c7',
+    backgroundColor: '#e0f2fe',
+  },
+  typeOptionIcon: {
+    fontSize: 20,
+    marginBottom: 2,
+  },
+  typeOptionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  typeOptionLabelActive: {
+    color: '#0284c7',
+    fontWeight: '800',
+  },
+  instHeader: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0369a1',
+    marginBottom: 4,
+  },
+  instText: {
+    fontSize: 11,
+    color: '#334155',
+    lineHeight: 17,
   },
   centerContainer: {
     flex: 1,

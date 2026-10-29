@@ -9,15 +9,17 @@ import {
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { api } from '../api/client';
+import { useDevices } from '../context/DeviceContext';
 
 export default function AlertsScreen() {
+  const { selectedDeviceId, selectedDevice } = useDevices();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadAlerts = useCallback(async () => {
     try {
-      const data = await api.getDashboard();
+      const data = await api.getDashboard(selectedDeviceId);
       setAlerts(data.recent_alerts || []);
     } catch (e) {
       console.log('Error fetching alerts:', e.message);
@@ -25,7 +27,7 @@ export default function AlertsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [selectedDeviceId]);
 
   useEffect(() => {
     loadAlerts();

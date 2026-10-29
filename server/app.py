@@ -149,24 +149,34 @@ async def get_live_status():
     return database.get_live_device_status(device_id)
 
 @app.post("/api/study-mode/toggle")
-async def toggle_study_mode():
-    current = database.get_setting("study_mode_active", "false").lower() == "true"
-    new_state = "false" if current else "true"
-    database.set_setting("study_mode_active", new_state)
-    return {"success": True, "study_mode_active": new_state == "true"}
+async def toggle_study_mode(request: Request, device_id: int = None):
+    target_id = device_id
+    if target_id is None:
+        try:
+            body = await request.json()
+            target_id = body.get("device_id")
+        except Exception:
+            pass
+    new_state = database.toggle_study_mode(target_id)
+    return {"success": True, "study_mode_active": new_state, "device_id": target_id}
 
 @app.post("/api/emergency-lock/toggle")
-async def toggle_emergency_lock():
-    current = database.get_setting("emergency_lock", "false").lower() == "true"
-    new_state = "false" if current else "true"
-    database.set_setting("emergency_lock", new_state)
-    if new_state == "true":
+async def toggle_emergency_lock(request: Request, device_id: int = None):
+    target_id = device_id
+    if target_id is None:
+        try:
+            body = await request.json()
+            target_id = body.get("device_id")
+        except Exception:
+            pass
+    new_state = database.toggle_emergency_lock(target_id)
+    if new_state and (target_id is None or target_id == database.get_device_id(config.DEVICE_NAME)):
         try:
             import ctypes
             ctypes.windll.user32.LockWorkStation()
         except Exception:
             pass
-    return {"success": True, "emergency_lock": new_state == "true"}
+    return {"success": True, "emergency_lock": new_state, "device_id": target_id}
 
 @app.post("/api/settings/update")
 async def update_settings(
@@ -220,16 +230,16 @@ async def export_csv():
 
 # --- Screenshot API Endpoints ---
 @app.get("/api/screenshots/recent")
-async def get_recent_screenshots_api(limit: int = 15):
+async def get_recent_screenshots_api(limit: int = 15, device_id: int = None):
     """Returns recent screenshots with thumbnails and metadata."""
-    device_id = database.get_device_id(config.DEVICE_NAME)
-    return database.get_recent_screenshots(device_id, limit=limit)
+    dev_id = device_id or database.get_device_id(config.DEVICE_NAME)
+    return database.get_recent_screenshots(dev_id, limit=limit)
 
 @app.get("/api/screenshots/latest")
-async def get_latest_screenshot_api():
+async def get_latest_screenshot_api(device_id: int = None):
     """Returns the most recent screenshot."""
-    device_id = database.get_device_id(config.DEVICE_NAME)
-    latest = database.get_latest_screenshot(device_id)
+    dev_id = device_id or database.get_device_id(config.DEVICE_NAME)
+    latest = database.get_latest_screenshot(dev_id)
     if not latest:
         return JSONResponse(status_code=404, content={"error": "No screenshot available yet"})
     return latest
@@ -243,10 +253,17 @@ async def get_screenshot_detail_api(screenshot_id: int):
     return shot
 
 @app.post("/api/screenshots/request")
-async def request_screenshot_capture_api():
+async def request_screenshot_capture_api(request: Request, device_id: int = None):
     """Triggers an on-demand screenshot request for the tracker to capture immediately."""
-    database.request_on_demand_screenshot()
-    return {"success": True, "message": "Screenshot capture request sent to tracker client."}
+    target_id = device_id
+    if target_id is None:
+        try:
+            body = await request.json()
+            target_id = body.get("device_id")
+        except Exception:
+            pass
+    database.request_on_demand_screenshot(target_id)
+    return {"success": True, "message": f"Screenshot capture request sent to tracker client for device {target_id or 'default'}."}
 
 
 # --- Windows Setup Executable Download Endpoint ---
@@ -266,13 +283,7 @@ async def download_tracker_exe():
 @app.get("/api/download/tracker.apk")
 async def download_tracker_apk():
     """Serves or redirects to the compiled Android Mobile App APK."""
-    cloud_apk_url = getattr(config, "APK_DOWNLOAD_URL", "").strip() or os.getenv("APK_DOWNLOAD_URL", "").strip()
-
-    # 1. If explicit cloud download URL is configured, redirect instantly
-    if cloud_apk_url:
-        return RedirectResponse(url=cloud_apk_url, status_code=307)
-
-    # 2. Check local precompiled APK file candidates
+    # 1. Check local precompiled APK file candidates
     local_candidates = [
         Path(__file__).resolve().parent / "static" / "downloads" / "ParentalScreenTracker.apk",
         Path(r"F:\ICTBD_02\soft\ParentalScreenTracker.apk"),
@@ -288,6 +299,11 @@ async def download_tracker_apk():
             filename="ParentalScreenTracker.apk",
             media_type="application/vnd.android.package-archive"
         )
+
+    # 2. If explicit cloud download URL is configured, redirect
+    cloud_apk_url = getattr(config, "APK_DOWNLOAD_URL", "").strip() or os.getenv("APK_DOWNLOAD_URL", "").strip()
+    if cloud_apk_url:
+        return RedirectResponse(url=cloud_apk_url, status_code=307)
 
     # 3. If APK cannot be directly streamed, return an intuitive setup & installation guide
     html_content = """<!DOCTYPE html>
@@ -357,9 +373,31 @@ async def download_tracker_apk():
 
 # --- React Native Mobile App API Endpoints ---
 @app.get("/api/mobile/dashboard")
-async def get_mobile_dashboard():
-    """Consolidated JSON state endpoint for the React Native mobile app."""
-    device_id = database.get_device_id(config.DEVICE_NAME)
+async def get_mobile_dashboard(device_id: int = None, parent_id: int = None):
+    """Consolidated JSON state endpoint for the React Native mobile app with multi-device support."""
+    devices = database.get_parent_devices(parent_id)
+
+    target_dev = None
+    if device_id:
+        target_dev = next((d for d in devices if d["id"] == device_id), None)
+
+    if not target_dev:
+        if devices:
+            target_dev = devices[0]
+            device_id = target_dev["id"]
+        else:
+            device_id = database.get_device_id(config.DEVICE_NAME)
+            target_dev = {
+                "id": device_id,
+                "device_name": config.DEVICE_NAME,
+                "assigned_child": config.ASSIGNED_CHILD,
+                "os_name": "Windows",
+                "is_online": False,
+                "last_seen_str": "Never"
+            }
+    else:
+        device_id = target_dev["id"]
+
     summary = database.get_today_summary(device_id)
     apps = database.get_today_usage_by_app(device_id)
     rules = database.get_all_rules()
@@ -368,6 +406,7 @@ async def get_mobile_dashboard():
     weekly_trend = database.get_weekly_trend(device_id)
     recent_logs = database.get_recent_activity_logs(device_id, limit=30)
     recent_alerts = database.get_recent_alerts(device_id, limit=20)
+    device_status = database.get_device_lock_and_study_status(device_id)
 
     daily_total_limit_mins = int(settings.get("daily_total_limit_minutes", "240"))
     total_sec = summary["total_seconds"]
@@ -376,14 +415,17 @@ async def get_mobile_dashboard():
 
     return {
         "device": {
-            "name": config.DEVICE_NAME,
-            "assigned_child": config.ASSIGNED_CHILD,
+            "id": device_id,
+            "name": target_dev.get("device_name", config.DEVICE_NAME),
+            "assigned_child": target_dev.get("assigned_child", config.ASSIGNED_CHILD),
+            "os_name": target_dev.get("os_name", "Windows"),
             "online": live_status.get("online", False),
             "current_app": live_status.get("current_app", "None"),
             "current_title": live_status.get("current_title", ""),
             "current_category": live_status.get("current_category", "Other"),
             "last_activity_time": live_status.get("last_activity_time", "")
         },
+        "devices": devices,
         "summary": {
             "total_seconds": summary["total_seconds"],
             "total_formatted": format_time(summary["total_seconds"]),
@@ -413,8 +455,8 @@ async def get_mobile_dashboard():
         ],
         "rules": rules,
         "settings": {
-            "study_mode_active": settings.get("study_mode_active", "false").lower() == "true",
-            "emergency_lock": settings.get("emergency_lock", "false").lower() == "true",
+            "study_mode_active": device_status["study_mode_active"],
+            "emergency_lock": device_status["emergency_lock"],
             "study_start_hour": int(settings.get("study_start_hour", "19")),
             "study_end_hour": int(settings.get("study_end_hour", "22")),
             "daily_total_limit_minutes": daily_total_limit_mins
@@ -423,15 +465,15 @@ async def get_mobile_dashboard():
         "recent_logs": recent_logs,
         "recent_alerts": recent_alerts,
         "latest_screenshot": database.get_latest_screenshot(device_id),
-        "recent_screenshots": database.get_recent_screenshots(device_id, limit=12),
+        "recent_screenshots": database.get_recent_screenshots(device_id, limit=30),
         "recent_keystrokes": database.get_recent_keystroke_logs(device_id, limit=30)
     }
 
 @app.get("/api/keystrokes")
-async def get_keystrokes_api(limit: int = 50, q: str = None, log_type: str = None):
+async def get_keystrokes_api(limit: int = 50, q: str = None, log_type: str = None, device_id: int = None):
     """Fetches recent keystroke and clipboard logs with optional search filtering."""
-    device_id = database.get_device_id(config.DEVICE_NAME)
-    logs = database.get_recent_keystroke_logs(device_id, limit=limit, search_query=q, log_type=log_type)
+    dev_id = device_id or database.get_device_id(config.DEVICE_NAME)
+    logs = database.get_recent_keystroke_logs(dev_id, limit=limit, search_query=q, log_type=log_type)
     return {"keystrokes": logs}
 
 @app.post("/api/keystrokes")
@@ -526,15 +568,16 @@ async def api_generate_pairing_code(request: Request, payload: dict = Body(...))
     parent_id = parent["id"] if parent else payload.get("parent_id", 1)
     device_name = payload.get("device_name", "Child PC").strip()
     assigned_child = payload.get("assigned_child", "").strip()
+    os_name = payload.get("os_name", "Laptop").strip()
 
-    result = database.create_pairing_code(parent_id, device_name, assigned_child)
+    result = database.create_pairing_code(parent_id, device_name, assigned_child, os_name)
     return {"success": True, **result}
 
 @app.post("/api/devices/pair")
 async def api_pair_device(payload: dict = Body(...)):
     pairing_code = payload.get("pairing_code", "").strip()
     hardware_uuid = payload.get("hardware_uuid", "").strip()
-    os_name = payload.get("os_name", "Windows")
+    os_name = payload.get("os_name", "Windows").strip()
     if not pairing_code:
         return JSONResponse(status_code=400, content={"error": "Pairing code is required."})
 
@@ -543,8 +586,9 @@ async def api_pair_device(payload: dict = Body(...)):
         return JSONResponse(status_code=404, content={"error": "Invalid or expired pairing code. Please generate a new one from your dashboard."})
     return {"success": True, "device": paired}
 
+@app.get("/api/devices")
 @app.get("/api/devices/my-devices")
-async def api_get_my_devices(request: Request, parent_id: int = 1):
+async def api_get_my_devices(request: Request, parent_id: int = None):
     auth = request.headers.get("authorization", "")
     if auth.startswith("Bearer "):
         token = auth.split("Bearer ", 1)[1].strip()
@@ -553,6 +597,43 @@ async def api_get_my_devices(request: Request, parent_id: int = 1):
             parent_id = p["id"]
     devices = database.get_parent_devices(parent_id)
     return {"success": True, "devices": devices}
+
+@app.post("/api/devices/delete")
+async def api_delete_device(payload: dict = Body(...)):
+    device_id = payload.get("device_id")
+    if not device_id:
+        return JSONResponse(status_code=400, content={"error": "device_id is required"})
+    database.delete_device(device_id)
+    return {"success": True, "message": f"Device {device_id} deleted successfully."}
+
+@app.post("/api/devices/update")
+async def api_update_device(payload: dict = Body(...)):
+    device_id = payload.get("device_id")
+    device_name = payload.get("device_name", "").strip()
+    assigned_child = payload.get("assigned_child", "").strip()
+    os_name = payload.get("os_name", "").strip()
+    if not device_id or not device_name:
+        return JSONResponse(status_code=400, content={"error": "device_id and device_name are required"})
+    database.update_device_info(device_id, device_name, assigned_child, os_name or None)
+    return {"success": True, "message": "Device updated successfully."}
+
+@app.post("/api/devices/sub-heartbeat")
+async def api_sub_heartbeat(payload: dict = Body(...)):
+    device_token_or_id = payload.get("device_token") or payload.get("device_id")
+    if not device_token_or_id:
+        return JSONResponse(status_code=400, content={"error": "device_token or device_id is required"})
+    current_app = payload.get("current_app", "Mobile Active")
+    duration_seconds = int(payload.get("duration_seconds", 15))
+    is_active = bool(payload.get("is_active", True))
+    result = database.record_sub_mobile_heartbeat(
+        device_token_or_id=device_token_or_id,
+        current_app=current_app,
+        duration_seconds=duration_seconds,
+        is_active=is_active
+    )
+    if not result:
+        return JSONResponse(status_code=404, content={"error": "Device not found"})
+    return {"success": True, **result}
 
 if __name__ == "__main__":
     import uvicorn

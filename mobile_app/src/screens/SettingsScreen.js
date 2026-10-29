@@ -8,17 +8,22 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { api, getApiBaseUrl, setApiBaseUrl, resetToDetectedBaseUrl } from '../api/client';
+import { useDevices } from '../context/DeviceContext';
 
 export default function SettingsScreen() {
+  const { devices, setAppMode } = useDevices();
   const [serverUrl, setServerUrl] = useState(getApiBaseUrl());
   const [studyStart, setStudyStart] = useState('19');
   const [studyEnd, setStudyEnd] = useState('22');
   const [dailyQuota, setDailyQuota] = useState('240');
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [pinModalVisible, setPinModalVisible] = useState(false);
+  const [pin, setPin] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -154,6 +159,27 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Controller Mode Status Card */}
+      <View style={[styles.card, { borderColor: '#f59e0b', borderWidth: 1.5, backgroundColor: '#fffbeb' }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+          <Text style={{ fontSize: 22, marginRight: 8 }}>👑</Text>
+          <Text style={[styles.cardTitle, { color: '#b45309' }]}>Role: Main Controller (মেইন কন্ট্রোলার)</Text>
+        </View>
+        <Text style={styles.label}>
+          This device acts as the Master Controller. From here you can add and control child Laptops, Desktops, and Mobiles.
+        </Text>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Connected Sub-Devices:</Text>
+          <Text style={[styles.infoVal, { fontWeight: '800', color: '#0284c7' }]}>{devices.length} Sub-Devices</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.switchSubBtn}
+          onPress={() => setPinModalVisible(true)}
+        >
+          <Text style={styles.switchSubBtnText}>📱 Switch this phone to Sub-Device (Child) Mode</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Info Card */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>System Information</Text>
@@ -170,6 +196,59 @@ export default function SettingsScreen() {
           <Text style={styles.infoVal}>ParentalScreenTracker.exe</Text>
         </View>
       </View>
+
+      {/* Switch Mode Confirmation PIN Modal */}
+      <Modal
+        visible={pinModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPinModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.pinModalBox}>
+            <Text style={styles.pinModalTitle}>Switch to Sub-Device Mode?</Text>
+            <Text style={styles.pinModalSub}>
+              This will convert this phone into a monitored child device. Enter Parent PIN to confirm:
+            </Text>
+            <TextInput
+              style={styles.pinInput}
+              keyboardType="numeric"
+              secureTextEntry
+              maxLength={6}
+              value={pin}
+              onChangeText={setPin}
+              placeholder="****"
+              placeholderTextColor="#999"
+            />
+            <View style={styles.pinBtnRow}>
+              <TouchableOpacity
+                style={styles.pinCancelBtn}
+                onPress={() => {
+                  setPinModalVisible(false);
+                  setPin('');
+                }}
+              >
+                <Text style={styles.pinCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.pinSubmitBtn}
+                onPress={() => {
+                  if (pin === '1234') {
+                    setPinModalVisible(false);
+                    setPin('');
+                    setAppMode('sub');
+                  } else {
+                    Alert.alert('Incorrect PIN', 'Please enter correct Parent PIN (Default: 1234).');
+                    setPin('');
+                  }
+                }}
+              >
+                <Text style={styles.pinSubmitText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -278,5 +357,87 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.textPrimary,
+  },
+  switchSubBtn: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#f59e0b',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  switchSubBtnText: {
+    color: '#b45309',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  pinModalBox: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 22,
+    width: '100%',
+    maxWidth: 320,
+    alignItems: 'center',
+  },
+  pinModalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f172a',
+    marginBottom: 4,
+  },
+  pinModalSub: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 14,
+    lineHeight: 18,
+  },
+  pinInput: {
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    width: 120,
+    paddingVertical: 8,
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 6,
+    marginBottom: 16,
+  },
+  pinBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  pinCancelBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+  },
+  pinCancelText: {
+    color: '#475569',
+    fontWeight: '700',
+  },
+  pinSubmitBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#f59e0b',
+    alignItems: 'center',
+  },
+  pinSubmitText: {
+    color: '#000000',
+    fontWeight: '800',
   },
 });

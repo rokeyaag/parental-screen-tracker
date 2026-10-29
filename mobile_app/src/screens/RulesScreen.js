@@ -13,8 +13,10 @@ import {
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { api } from '../api/client';
+import { useDevices } from '../context/DeviceContext';
 
 export default function RulesScreen() {
+  const { selectedDeviceId, selectedDevice } = useDevices();
   const [rules, setRules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
@@ -29,14 +31,14 @@ export default function RulesScreen() {
 
   const loadRules = useCallback(async () => {
     try {
-      const data = await api.getDashboard();
+      const data = await api.getDashboard(selectedDeviceId);
       setRules(data.rules || []);
     } catch (e) {
       console.log('Error fetching rules:', e.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedDeviceId]);
 
   useEffect(() => {
     loadRules();

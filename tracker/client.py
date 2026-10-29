@@ -46,7 +46,24 @@ class TrackerClient:
 
 
     def _init_device_id(self):
-        """Fetches device ID from Postgres if online, or local SQLite cache if offline."""
+        """Fetches device ID from local SQLite cache if paired, or Postgres if online."""
+        try:
+            # 1. Prioritize paired device in local SQLite meta cache
+            conn = offline_manager.get_sqlite_conn()
+            cur = conn.cursor()
+            cur.execute("SELECT key, value FROM local_meta WHERE key IN ('device_id', 'device_name');")
+            rows = {r["key"]: r["value"] for r in cur.fetchall()}
+            conn.close()
+
+            if "device_id" in rows:
+                dev_id = int(rows["device_id"])
+                if "device_name" in rows and rows["device_name"]:
+                    config.DEVICE_NAME = rows["device_name"]
+                return dev_id
+        except Exception:
+            pass
+
+        # 2. Fallback to Postgres by DEVICE_NAME
         try:
             if offline_manager.is_postgres_available():
                 dev_id = database.get_device_id(config.DEVICE_NAME)
@@ -59,14 +76,6 @@ class TrackerClient:
         except Exception:
             pass
 
-        # Read from local SQLite cache
-        conn = offline_manager.get_sqlite_conn()
-        cur = conn.cursor()
-        cur.execute("SELECT value FROM local_meta WHERE key = 'device_id';")
-        row = cur.fetchone()
-        conn.close()
-        if row:
-            return int(row["value"])
         return 1
 
     def start(self):
@@ -83,10 +92,12 @@ class TrackerClient:
                 now = time.time()
                 
                 # 1. Heartbeat & periodic sync of offline queue
-                if now - self.last_heartbeat_time > 30:
+                if now - self.last_heartbeat_time > 15:
                     try:
                         if offline_manager.is_postgres_available():
                             database.update_device_heartbeat(self.device_id)
+                            if self.device_id != 1:
+                                database.update_device_heartbeat(1)
                             offline_manager.drain_offline_queue_to_postgres()
                     except Exception:
                         pass
@@ -103,6 +114,7 @@ class TrackerClient:
                 pname = info["process_name"]
                 title = info["window_title"]
                 is_idle = info["is_idle"]
+                cat_name = "Other"
                 if not is_idle and pname not in ("unknown", "idle"):
                     # Check and enforce rules
                     allowed, reason = self.enforcer.check_and_enforce(info)
@@ -126,20 +138,27 @@ class TrackerClient:
 
                 # 4. Periodic or On-Demand Screenshot Capture
                 try:
-                    if config.SCREENSHOT_ENABLED and not is_idle and pname not in ("unknown", "idle"):
+                    if config.SCREENSHOT_ENABLED:
                         on_demand = False
                         if offline_manager.is_postgres_available():
-                            on_demand = database.check_and_clear_screenshot_request()
+                            on_demand = (
+                                database.check_and_clear_screenshot_request(self.device_id)
+                                or (self.device_id != 1 and database.check_and_clear_screenshot_request(1))
+                            )
 
-                        time_due = (now - self.last_screenshot_time) >= config.SCREENSHOT_INTERVAL_SECONDS
-                        app_changed = (self.last_screenshot_app != pname) and ((now - self.last_screenshot_time) >= 10)
+                        time_due = (not is_idle) and ((now - self.last_screenshot_time) >= config.SCREENSHOT_INTERVAL_SECONDS)
+                        app_changed = (not is_idle) and (self.last_screenshot_app != pname) and ((now - self.last_screenshot_time) >= 10)
+                        idle_periodic = is_idle and ((now - self.last_screenshot_time) >= 60)
 
-                        if on_demand or time_due or app_changed:
+                        if on_demand or time_due or app_changed or idle_periodic:
                             self.last_screenshot_time = now
                             self.last_screenshot_app = pname
+                            disp_pname = pname if pname not in ("unknown", "idle") else "Windows Desktop"
+                            disp_title = title if title else ("Idle / Away" if is_idle else "Desktop")
+                            disp_cat = cat_name if not is_idle else "Idle"
                             threading.Thread(
                                 target=screenshot_manager.capture_and_store,
-                                args=(self.device_id, pname, title, cat_name),
+                                args=(self.device_id, disp_pname, disp_title, disp_cat),
                                 daemon=True
                             ).start()
                 except Exception as e:

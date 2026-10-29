@@ -120,9 +120,10 @@ def uninstall_autostart():
 def handle_pairing(code):
     """Pairs this computer with a parent's account using the 6-digit pairing code."""
     try:
+        import platform
         import database
         from tracker import offline_manager
-        paired = database.pair_device_by_code(code)
+        paired = database.pair_device_by_code(code, hardware_uuid=f"Win-{platform.node()}", os_name="Windows")
         if paired:
             conn = offline_manager.get_sqlite_conn()
             with conn:

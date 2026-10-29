@@ -9,15 +9,17 @@ import {
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { api } from '../api/client';
+import { useDevices } from '../context/DeviceContext';
 
 export default function TimelineScreen() {
+  const { selectedDeviceId, selectedDevice } = useDevices();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadLogs = useCallback(async () => {
     try {
-      const data = await api.getDashboard();
+      const data = await api.getDashboard(selectedDeviceId);
       setLogs(data.recent_logs || []);
     } catch (e) {
       console.log('Error fetching logs:', e.message);
@@ -25,7 +27,7 @@ export default function TimelineScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [selectedDeviceId]);
 
   useEffect(() => {
     loadLogs();

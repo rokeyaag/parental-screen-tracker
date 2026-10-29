@@ -60,23 +60,30 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = 15000) => {
 };
 
 export const api = {
-  async getDashboard() {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/api/mobile/dashboard`);
+  async getDashboard(deviceId = null) {
+    const url = `${API_BASE_URL}/api/mobile/dashboard${deviceId ? `?device_id=${deviceId}` : ''}`;
+    const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
   },
 
-  async toggleStudyMode() {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/api/study-mode/toggle`, {
+  async toggleStudyMode(deviceId = null) {
+    const url = `${API_BASE_URL}/api/study-mode/toggle${deviceId ? `?device_id=${deviceId}` : ''}`;
+    const res = await fetchWithTimeout(url, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_id: deviceId }),
     });
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
   },
 
-  async toggleEmergencyLock() {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/api/emergency-lock/toggle`, {
+  async toggleEmergencyLock(deviceId = null) {
+    const url = `${API_BASE_URL}/api/emergency-lock/toggle${deviceId ? `?device_id=${deviceId}` : ''}`;
+    const res = await fetchWithTimeout(url, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_id: deviceId }),
     });
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
@@ -112,42 +119,51 @@ export const api = {
     return await res.json();
   },
 
-  async requestScreenshot() {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/api/screenshots/request`, {
+  async requestScreenshot(deviceId = null) {
+    const url = `${API_BASE_URL}/api/screenshots/request${deviceId ? `?device_id=${deviceId}` : ''}`;
+    const res = await fetchWithTimeout(url, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_id: deviceId }),
     });
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
   },
 
-  async getRecentScreenshots(limit = 15) {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/api/screenshots/recent?limit=${limit}`);
-    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-    return await res.json();
-  },
-
-  async getLatestScreenshot() {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/api/screenshots/latest`);
-    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
-    return await res.json();
-  },
-
-  async getKeystrokes(limit = 30, query = '', logType = '') {
-    let url = `${API_BASE_URL}/api/keystrokes?limit=${limit}`;
-    if (query) url += `&q=${encodeURIComponent(query)}`;
-    if (logType) url += `&log_type=${encodeURIComponent(logType)}`;
+  async getRecentScreenshots(limit = 15, deviceId = null) {
+    let url = `${API_BASE_URL}/api/screenshots/recent?limit=${limit}`;
+    if (deviceId) url += `&device_id=${deviceId}`;
     const res = await fetchWithTimeout(url);
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
   },
 
-  async generatePairingCode(deviceName, assignedChild) {
+  async getLatestScreenshot(deviceId = null) {
+    let url = `${API_BASE_URL}/api/screenshots/latest`;
+    if (deviceId) url += `?device_id=${deviceId}`;
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async getKeystrokes(limit = 30, query = '', logType = '', deviceId = null) {
+    let url = `${API_BASE_URL}/api/keystrokes?limit=${limit}`;
+    if (query) url += `&q=${encodeURIComponent(query)}`;
+    if (logType) url += `&log_type=${encodeURIComponent(logType)}`;
+    if (deviceId) url += `&device_id=${deviceId}`;
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async generatePairingCode(deviceName, assignedChild, osName = 'Laptop') {
     const res = await fetchWithTimeout(`${API_BASE_URL}/api/devices/generate-pairing-code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         device_name: deviceName,
-        assigned_child: assignedChild
+        assigned_child: assignedChild,
+        os_name: osName
       }),
     });
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
@@ -155,7 +171,61 @@ export const api = {
   },
 
   async getMyDevices() {
-    const res = await fetchWithTimeout(`${API_BASE_URL}/api/devices/my-devices`);
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/devices`);
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async deleteDevice(deviceId) {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/devices/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ device_id: deviceId }),
+    });
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async updateDevice(deviceId, deviceName, assignedChild, osName = null) {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/devices/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        device_id: deviceId,
+        device_name: deviceName,
+        assigned_child: assignedChild,
+        os_name: osName
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async pairDevice(pairingCode, hardwareUuid = '', osName = 'Mobile') {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/devices/pair`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pairing_code: pairingCode,
+        hardware_uuid: hardwareUuid,
+        os_name: osName
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
+    return await res.json();
+  },
+
+  async sendSubHeartbeat(deviceTokenOrId, currentApp = 'Mobile Active', durationSeconds = 15, isActive = true) {
+    const res = await fetchWithTimeout(`${API_BASE_URL}/api/devices/sub-heartbeat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        device_token: deviceTokenOrId,
+        current_app: currentApp,
+        duration_seconds: durationSeconds,
+        is_active: isActive
+      }),
+    });
     if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
     return await res.json();
   },

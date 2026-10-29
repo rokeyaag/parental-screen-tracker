@@ -1819,6 +1819,13 @@
                     const isNew = data.time_str && data.time_str !== lastSeenScreenshotTime;
                     lastSeenScreenshotTime = data.time_str;
 
+                    // If empty box was displayed and hero card is missing, reload to build full hero UI
+                    const emptyBox = document.getElementById('emptyScreenshotBox');
+                    if (emptyBox && !document.getElementById('latestScreenshotImg')) {
+                        location.reload();
+                        return;
+                    }
+
                     // Update Main Screenshots Tab
                     const img = document.getElementById('latestScreenshotImg');
                     if (img) img.src = data.image_data;
@@ -1848,11 +1855,51 @@
 
                     if (isManual || isNew) {
                         if (isManual) showNotification('New screenshot loaded successfully!');
+                        refreshGalleryList();
                     }
                 }
             } catch (e) {}
         }
-        setInterval(() => fetchLatestScreenshot(false), 15000);
+        // Real-time polling every 4 seconds for live monitor feel
+        setInterval(() => fetchLatestScreenshot(false), 4000);
+
+        async function refreshGalleryList() {
+            try {
+                const res = await fetch('/api/screenshots/recent?limit=12');
+                if (!res.ok) return;
+                const shots = await res.json();
+                if (!Array.isArray(shots) || shots.length === 0) return;
+                
+                const container = document.getElementById('screenshotGalleryContainer');
+                if (container) {
+                    container.innerHTML = shots.map(shot => `
+                        <div class="col-sm-6 col-md-4 col-lg-3">
+                            <div class="screenshot-thumb-card h-100" onclick="openScreenshotModal('${shot.thumbnail_data || shot.image_data}', '${(shot.window_title||'').replace(/'/g, "\\'")}', '${shot.process_name}', '${shot.time_str}', '${shot.category_name}')">
+                                <div class="position-relative">
+                                    <img src="${shot.thumbnail_data || shot.image_data}" alt="${shot.process_name}" class="screenshot-thumb-img" loading="lazy" />
+                                    <span class="badge bg-dark bg-opacity-75 text-white position-absolute top-0 end-0 m-2 font-monospace small px-2 py-1 rounded">
+                                        ${shot.time_str}
+                                    </span>
+                                </div>
+                                <div class="p-2">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="badge bg-light text-dark border border-slate-200 fw-bold small text-truncate" style="max-width: 130px;">
+                                            ${shot.process_name}
+                                        </span>
+                                        <span class="badge badge-cat-browsing small">${shot.category_name}</span>
+                                    </div>
+                                    <div class="text-secondary small text-truncate" title="${shot.window_title || ''}">
+                                        ${shot.window_title || 'Desktop'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                const cnt = document.getElementById('galleryCountBadge');
+                if (cnt) cnt.innerText = `${shots.length} Captures`;
+            } catch (err) {}
+        }
 
         function openScreenshotModal(imgSrc, title, process, timeStr, category) {
             document.getElementById('modalScreenshotImg').src = imgSrc;

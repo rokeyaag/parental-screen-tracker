@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform, LogBox } from 'react-native';
 import { colors } from './src/theme/colors';
+import { DeviceProvider, useDevices } from './src/context/DeviceContext';
 
 // Ignore non-critical deprecation logs in development
 LogBox.ignoreLogs(['SafeAreaView has been deprecated']);
@@ -11,6 +12,7 @@ import RulesScreen from './src/screens/RulesScreen';
 import TimelineScreen from './src/screens/TimelineScreen';
 import AlertsScreen from './src/screens/AlertsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
+import ChildClientScreen from './src/screens/ChildClientScreen';
 
 const TABS = [
   { key: 'home', label: 'Overview', icon: '📊' },
@@ -20,8 +22,14 @@ const TABS = [
   { key: 'settings', label: 'Settings', icon: '🛠️' },
 ];
 
-export default function App() {
+function MainNavigator() {
   const [activeTab, setActiveTab] = useState('home');
+  const { appMode } = useDevices();
+
+  // If this phone is running in Sub-Device (Child) mode, render Child Client Screen
+  if (appMode === 'sub') {
+    return <ChildClientScreen />;
+  }
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -43,7 +51,7 @@ export default function App() {
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      
+
       {/* Active Screen Content */}
       <View style={styles.contentContainer}>
         {renderScreen()}
@@ -75,6 +83,14 @@ export default function App() {
         })}
       </View>
     </View>
+  );
+}
+
+export default function App() {
+  return (
+    <DeviceProvider>
+      <MainNavigator />
+    </DeviceProvider>
   );
 }
 

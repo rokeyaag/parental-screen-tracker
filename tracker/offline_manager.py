@@ -6,14 +6,18 @@ from pathlib import Path
 import config
 
 def get_offline_db_path():
-    appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(Path.home())
-    data_dir = Path(appdata) / "ParentalScreenTracker"
     try:
+        appdata = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(Path.home())
+        data_dir = Path(appdata) / "ParentalScreenTracker"
         data_dir.mkdir(parents=True, exist_ok=True)
+        test_file = data_dir / ".test_write"
+        test_file.touch()
+        test_file.unlink()
+        return data_dir / "local_offline_cache.db"
     except Exception:
-        data_dir = Path.home() / ".parental_screen_tracker"
-        data_dir.mkdir(parents=True, exist_ok=True)
-    return data_dir / "local_offline_cache.db"
+        fallback_dir = Path(__file__).resolve().parent.parent / "data"
+        fallback_dir.mkdir(parents=True, exist_ok=True)
+        return fallback_dir / "local_offline_cache.db"
 
 DB_PATH = get_offline_db_path()
 

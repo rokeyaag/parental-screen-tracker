@@ -44,11 +44,16 @@ An automated, cross-platform parental monitoring and screen-time management syst
    - One-click CSV export and report download.
    - Full rule management: add, edit, or remove time limits and process restrictions on the fly.
 
-8. **Cross-Platform Mobile App (React Native)**:
-   - Companion mobile application for Android and iOS providing remote monitoring, live screen preview, typed text feed, rule configuration, and instant controls for parents.
+8. **Main Controller Mobile App (Master Control Center)**:
+   - The primary parent mobile application acts as the **Main Controller (মেইন কন্ট্রোলার)**.
+   - **Multi-Device Support**: Manage and control multiple Sub-Devices (Laptop, Desktop PC, and Child Mobile phones) from one central phone.
+   - **Sub-Device Switcher**: Instantly switch between children's devices with live online/offline indicators.
+   - **1-Click Sub-Device Pairing Wizard**: Generate 6-digit codes to link Laptops, Desktops, or other Mobile phones in 15 seconds.
+   - **Sub-Device Client Mode**: Companion mode for child mobile phones with automatic heartbeat reporting, study mode enforcement, and fullscreen emergency parental lock.
 
-9. **Windows Background Client**:
+9. **Windows Background Client (Laptop / Desktop Sub-Agent)**:
    - Runs silently in the background with automatic Windows Startup registration.
+   - Pairs with the Main Controller via 6-digit pairing code (`ParentalScreenTracker.exe --pair [CODE]`).
    - Compatible with Windows 11 Smart App Control via signed execution runtime.
 
 

@@ -6,6 +6,7 @@ import io
 import base64
 import ctypes
 import traceback
+from datetime import datetime
 from PIL import Image, ImageGrab
 import config
 import database
@@ -59,8 +60,8 @@ def capture_screen_image():
             srcdc.DeleteDC()
             win32gui.ReleaseDC(hwnd, hwindc)
             return img
-        except Exception:
-            print(f"[Screenshot Capture Error] {e}")
+        except Exception as err:
+            print(f"[Screenshot Capture Error] {err}")
             return None
 
 def process_and_encode(img, target_width=1024, target_height=576, quality=65):
@@ -122,8 +123,24 @@ def capture_and_store(device_id, process_name, window_title, category_name):
                 category_name=category_name,
                 image_data=image_data,
                 thumbnail_data=thumbnail_data,
-                max_stored=config.SCREENSHOT_MAX_STORED
+                max_stored=config.SCREENSHOT_MAX_STORED,
+                captured_at=datetime.now()
             )
+            # Also keep primary device 1 in sync if this laptop is paired as a sub-device
+            if str(device_id) != "1":
+                try:
+                    database.save_screenshot(
+                        device_id=1,
+                        process_name=process_name,
+                        window_title=window_title,
+                        category_name=category_name,
+                        image_data=image_data,
+                        thumbnail_data=thumbnail_data,
+                        max_stored=config.SCREENSHOT_MAX_STORED,
+                        captured_at=datetime.now()
+                    )
+                except Exception:
+                    pass
             print(f"[Screenshot Saved] ID: {new_id} | App: {process_name} | Size: ~{len(image_data)//1024}KB")
             return new_id
         else:
