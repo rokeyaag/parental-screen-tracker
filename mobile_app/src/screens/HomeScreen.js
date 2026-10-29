@@ -16,6 +16,7 @@ import {
 import { colors } from '../theme/colors';
 import { api } from '../api/client';
 import { useDevices } from '../context/DeviceContext';
+import ZoomableImageViewer from '../components/ZoomableImageViewer';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -539,123 +540,12 @@ export default function HomeScreen() {
         )}
       </View>
 
-      {/* Fullscreen Screenshot Modal */}
-      <Modal
+      {/* Fullscreen Pinch & Double-Tap Zoomable Screenshot Viewer */}
+      <ZoomableImageViewer
         visible={screenshotModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setScreenshotModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.modalAppName}>
-                {selectedScreenshot?.process_name || 'Active Screen'}
-              </Text>
-              <Text style={styles.modalAppTitle} numberOfLines={1}>
-                {selectedScreenshot?.window_title || ''}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.modalCloseBtn}
-              onPress={() => setScreenshotModalVisible(false)}
-            >
-              <Text style={styles.modalCloseText}>✕ Close</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Zoom Control Bar */}
-          <View style={styles.zoomControlBar}>
-            <View style={styles.zoomInfoLeft}>
-              <View style={styles.zoomBadge}>
-                <Text style={styles.zoomBadgeText}>{Math.round(zoomScale * 100)}%</Text>
-              </View>
-              <Text style={styles.zoomHintText}>
-                {zoomScale > 1.0 ? 'Pinch/Drag to pan' : 'Double tap or + to zoom'}
-              </Text>
-            </View>
-
-            <View style={styles.zoomButtonsGroup}>
-              <TouchableOpacity
-                style={[styles.zoomActionBtn, zoomScale <= 1.0 && styles.zoomActionBtnDisabled]}
-                onPress={handleZoomOut}
-                disabled={zoomScale <= 1.0}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.zoomActionBtnText}>−</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.zoomActionBtn, styles.zoomResetBtn]}
-                onPress={handleZoomReset}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.zoomResetBtnText}>Reset</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.zoomActionBtn, zoomScale >= 4.0 && styles.zoomActionBtnDisabled]}
-                onPress={handleZoomIn}
-                disabled={zoomScale >= 4.0}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.zoomActionBtnText}>+</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.modalImageContainer}>
-            {selectedScreenshot ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={zoomScale > 1.0}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                  minWidth: '100%',
-                  minHeight: '100%',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <ScrollView
-                  showsVerticalScrollIndicator={zoomScale > 1.0}
-                  showsHorizontalScrollIndicator={false}
-                  maximumZoomScale={5.0}
-                  minimumZoomScale={1.0}
-                  zoomScale={zoomScale}
-                  contentContainerStyle={{
-                    minWidth: '100%',
-                    minHeight: '100%',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                  centerContent={true}
-                >
-                  <TouchableOpacity
-                    activeOpacity={1}
-                    onPress={handleDoubleTap}
-                  >
-                    <Image
-                      source={{ uri: selectedScreenshot.image_data || selectedScreenshot.thumbnail_data }}
-                      style={{
-                        width: (SCREEN_WIDTH - 24) * zoomScale,
-                        height: (SCREEN_HEIGHT * 0.65) * zoomScale,
-                      }}
-                      resizeMode="contain"
-                    />
-                  </TouchableOpacity>
-                </ScrollView>
-              </ScrollView>
-            ) : null}
-          </View>
-
-          <View style={styles.modalFooter}>
-            <Text style={styles.modalFooterText}>
-              Captured at: {selectedScreenshot?.time_str || ''} • Category: {selectedScreenshot?.category_name || 'Other'}
-            </Text>
-          </View>
-        </View>
-      </Modal>
+        screenshot={selectedScreenshot}
+        onClose={() => setScreenshotModalVisible(false)}
+      />
 
       {/* Typed Text & Keystroke History Card */}
       <View style={styles.keystrokeCard}>
