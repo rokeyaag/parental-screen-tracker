@@ -11,10 +11,13 @@ import {
   Image,
   Modal,
   TextInput,
+  Dimensions,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { api } from '../api/client';
 import { useDevices } from '../context/DeviceContext';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const {
@@ -35,6 +38,8 @@ export default function HomeScreen() {
   const [capturingScreen, setCapturingScreen] = useState(false);
   const [screenshotModalVisible, setScreenshotModalVisible] = useState(false);
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
+  const [zoomScale, setZoomScale] = useState(1.0);
+  const [lastTap, setLastTap] = useState(0);
 
   // Sub-device Modals
   const [switcherModalVisible, setSwitcherModalVisible] = useState(false);
@@ -215,7 +220,28 @@ export default function HomeScreen() {
 
   const openScreenshotViewer = (shot) => {
     setSelectedScreenshot(shot);
+    setZoomScale(1.0);
     setScreenshotModalVisible(true);
+  };
+
+  const handleZoomIn = () => {
+    setZoomScale((prev) => Math.min(Number((prev + 0.5).toFixed(1)), 4.0));
+  };
+
+  const handleZoomOut = () => {
+    setZoomScale((prev) => Math.max(Number((prev - 0.5).toFixed(1)), 1.0));
+  };
+
+  const handleZoomReset = () => {
+    setZoomScale(1.0);
+  };
+
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      setZoomScale((prev) => (prev > 1.2 ? 1.0 : 2.5));
+    }
+    setLastTap(now);
   };
 
   if (loading && !data) {
@@ -538,13 +564,88 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Zoom Control Bar */}
+          <View style={styles.zoomControlBar}>
+            <View style={styles.zoomInfoLeft}>
+              <View style={styles.zoomBadge}>
+                <Text style={styles.zoomBadgeText}>{Math.round(zoomScale * 100)}%</Text>
+              </View>
+              <Text style={styles.zoomHintText}>
+                {zoomScale > 1.0 ? 'Pinch/Drag to pan' : 'Double tap or + to zoom'}
+              </Text>
+            </View>
+
+            <View style={styles.zoomButtonsGroup}>
+              <TouchableOpacity
+                style={[styles.zoomActionBtn, zoomScale <= 1.0 && styles.zoomActionBtnDisabled]}
+                onPress={handleZoomOut}
+                disabled={zoomScale <= 1.0}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.zoomActionBtnText}>−</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.zoomActionBtn, styles.zoomResetBtn]}
+                onPress={handleZoomReset}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.zoomResetBtnText}>Reset</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.zoomActionBtn, zoomScale >= 4.0 && styles.zoomActionBtnDisabled]}
+                onPress={handleZoomIn}
+                disabled={zoomScale >= 4.0}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.zoomActionBtnText}>+</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <View style={styles.modalImageContainer}>
             {selectedScreenshot ? (
-              <Image
-                source={{ uri: selectedScreenshot.image_data || selectedScreenshot.thumbnail_data }}
-                style={styles.modalFullImage}
-                resizeMode="contain"
-              />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={zoomScale > 1.0}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  minWidth: '100%',
+                  minHeight: '100%',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <ScrollView
+                  showsVerticalScrollIndicator={zoomScale > 1.0}
+                  showsHorizontalScrollIndicator={false}
+                  maximumZoomScale={5.0}
+                  minimumZoomScale={1.0}
+                  zoomScale={zoomScale}
+                  contentContainerStyle={{
+                    minWidth: '100%',
+                    minHeight: '100%',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  centerContent={true}
+                >
+                  <TouchableOpacity
+                    activeOpacity={1}
+                    onPress={handleDoubleTap}
+                  >
+                    <Image
+                      source={{ uri: selectedScreenshot.image_data || selectedScreenshot.thumbnail_data }}
+                      style={{
+                        width: (SCREEN_WIDTH - 24) * zoomScale,
+                        height: (SCREEN_HEIGHT * 0.65) * zoomScale,
+                      }}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+                </ScrollView>
+              </ScrollView>
             ) : null}
           </View>
 
@@ -1698,6 +1799,70 @@ const styles = StyleSheet.create({
   modalCloseText: {
     color: '#ffffff',
     fontSize: 12,
+    fontWeight: '700',
+  },
+  zoomControlBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30, 41, 59, 0.85)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  zoomInfoLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  zoomBadge: {
+    backgroundColor: '#0284c7',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  zoomBadgeText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  zoomHintText: {
+    color: '#94a3b8',
+    fontSize: 11,
+  },
+  zoomButtonsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  zoomActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomActionBtnDisabled: {
+    opacity: 0.35,
+  },
+  zoomActionBtnText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    lineHeight: 20,
+  },
+  zoomResetBtn: {
+    width: 'auto',
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  zoomResetBtnText: {
+    color: '#ffffff',
+    fontSize: 11,
     fontWeight: '700',
   },
   modalImageContainer: {

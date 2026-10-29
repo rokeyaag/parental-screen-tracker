@@ -1456,10 +1456,16 @@
                         <span class="badge bg-warning text-dark rounded-pill px-2 py-1" id="modalScreenshotCategory">Category</span>
                         <span class="text-secondary small ms-2"><i class="fa-solid fa-clock me-1"></i> <span id="modalScreenshotTime"></span></span>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-sm btn-dark border border-slate-700 rounded-pill px-2" onclick="zoomWebScreenshot(-0.25)" title="Zoom Out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+                        <span id="webZoomPercent" class="badge bg-secondary rounded-pill px-2 py-1" style="cursor: pointer;" onclick="resetWebScreenshotZoom()" title="Click to Reset">100%</span>
+                        <button type="button" class="btn btn-sm btn-dark border border-slate-700 rounded-pill px-2" onclick="zoomWebScreenshot(0.25)" title="Zoom In"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+                        <button type="button" class="btn btn-sm btn-dark border border-slate-700 rounded-pill px-2" onclick="resetWebScreenshotZoom()" title="Reset Zoom"><i class="fa-solid fa-rotate-left"></i></button>
+                        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
                 </div>
-                <div class="modal-body p-2 text-center bg-dark rounded-bottom">
-                    <img id="modalScreenshotImg" src="" alt="Screen Snapshot" class="img-fluid rounded" style="max-height: 80vh; object-fit: contain; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+                <div class="modal-body p-2 text-center bg-dark rounded-bottom position-relative" style="overflow: auto; max-height: 80vh;" id="modalScreenshotContainer">
+                    <img id="modalScreenshotImg" src="" alt="Screen Snapshot" class="img-fluid rounded" style="max-height: 80vh; object-fit: contain; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transition: transform 0.15s ease-out; transform-origin: center center; cursor: zoom-in;" onclick="toggleWebScreenshotZoom(event)" />
                 </div>
                 <div class="modal-footer border-slate-200 d-flex justify-content-between">
                     <div class="text-secondary small text-truncate" style="max-width: 70%;" id="modalScreenshotTitle"></div>
@@ -1901,7 +1907,40 @@
             } catch (err) {}
         }
 
-        function openScreenshotModal(imgSrc, title, process, timeStr, category) {
+
+        // --- Web Screenshot Lightbox Zooming ---
+        let currentWebZoom = 1.0;
+        function resetWebScreenshotZoom() {
+            currentWebZoom = 1.0;
+            updateWebScreenshotTransform();
+        }
+        function zoomWebScreenshot(delta) {
+            currentWebZoom = Math.max(1.0, Math.min(4.0, currentWebZoom + delta));
+            updateWebScreenshotTransform();
+        }
+        function toggleWebScreenshotZoom(e) {
+            if (currentWebZoom > 1.2) {
+                resetWebScreenshotZoom();
+            } else {
+                currentWebZoom = 2.0;
+                updateWebScreenshotTransform();
+            }
+        }
+        function updateWebScreenshotTransform() {
+            const img = document.getElementById('modalScreenshotImg');
+            const badge = document.getElementById('webZoomPercent');
+            if (img) {
+                img.style.transform = `scale(${currentWebZoom})`;
+                img.style.cursor = currentWebZoom > 1.2 ? 'zoom-out' : 'zoom-in';
+            }
+            if (badge) {
+                badge.innerText = `${Math.round(currentWebZoom * 100)}%`;
+            }
+        }
+
+        function openScreenshotModal(imgSrc, title, process, timeStr, category) {
+            resetWebScreenshotZoom();
+
             document.getElementById('modalScreenshotImg').src = imgSrc;
             document.getElementById('modalScreenshotTitle').innerText = title || 'Active Window';
             document.getElementById('modalScreenshotProcess').innerText = process || 'unknown';
