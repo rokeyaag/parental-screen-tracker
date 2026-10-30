@@ -537,23 +537,24 @@ def save_screenshot(device_id, process_name, window_title, category_name, image_
                   );
             """, (device_id, device_id, max_stored))
 
-            # Mirror to primary device 1 so legacy mobile APK views stay updated
-            if str(device_id) != "1":
+            # Mirror across host laptop alias IDs (163 <-> 1) so both views stay identical
+            if device_id in (1, 163):
+                alt_id = 1 if device_id == 163 else 163
                 try:
                     cur.execute("""
                         INSERT INTO screenshots (device_id, process_name, window_title, category_name, image_data, thumbnail_data, captured_at)
-                        VALUES (1, %s, %s, %s, %s, %s, %s);
-                    """, (process_name, window_title, category_name, image_data, thumbnail_data, captured_at))
+                        VALUES (%s, %s, %s, %s, %s, %s, %s);
+                    """, (alt_id, process_name, window_title, category_name, image_data, thumbnail_data, captured_at))
                     cur.execute("""
                         DELETE FROM screenshots
-                        WHERE device_id = 1
+                        WHERE device_id = %s
                           AND id NOT IN (
                               SELECT id FROM screenshots
-                              WHERE device_id = 1
+                              WHERE device_id = %s
                               ORDER BY captured_at DESC
                               LIMIT %s
                           );
-                    """, (max_stored,))
+                    """, (alt_id, alt_id, max_stored))
                 except Exception:
                     pass
 
@@ -584,13 +585,22 @@ def get_recent_screenshots(device_id, limit=30):
     device_id = _resolve_device_id(device_id)
     with get_db() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("""
-                SELECT id, device_id, process_name, window_title, category_name, thumbnail_data, captured_at
-                FROM screenshots
-                WHERE device_id = %s
-                ORDER BY captured_at DESC
-                LIMIT %s;
-            """, (device_id, limit))
+            if device_id in (1, 163):
+                cur.execute("""
+                    SELECT id, device_id, process_name, window_title, category_name, thumbnail_data, captured_at
+                    FROM screenshots
+                    WHERE device_id IN (1, 163)
+                    ORDER BY captured_at DESC
+                    LIMIT %s;
+                """, (limit,))
+            else:
+                cur.execute("""
+                    SELECT id, device_id, process_name, window_title, category_name, thumbnail_data, captured_at
+                    FROM screenshots
+                    WHERE device_id = %s
+                    ORDER BY captured_at DESC
+                    LIMIT %s;
+                """, (device_id, limit))
             rows = cur.fetchall()
             results = []
             for r in rows:
@@ -637,13 +647,22 @@ def get_latest_screenshot(device_id):
     device_id = _resolve_device_id(device_id)
     with get_db() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("""
-                SELECT id, device_id, process_name, window_title, category_name, image_data, thumbnail_data, captured_at
-                FROM screenshots
-                WHERE device_id = %s
-                ORDER BY captured_at DESC
-                LIMIT 1;
-            """, (device_id,))
+            if device_id in (1, 163):
+                cur.execute("""
+                    SELECT id, device_id, process_name, window_title, category_name, image_data, thumbnail_data, captured_at
+                    FROM screenshots
+                    WHERE device_id IN (1, 163)
+                    ORDER BY captured_at DESC
+                    LIMIT 1;
+                """)
+            else:
+                cur.execute("""
+                    SELECT id, device_id, process_name, window_title, category_name, image_data, thumbnail_data, captured_at
+                    FROM screenshots
+                    WHERE device_id = %s
+                    ORDER BY captured_at DESC
+                    LIMIT 1;
+                """, (device_id,))
             row = cur.fetchone()
             if not row:
                 return None
