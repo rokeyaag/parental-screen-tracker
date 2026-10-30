@@ -183,12 +183,15 @@ class Enforcer:
         self.refresh_rules_and_usage()
 
         # 1. Check Global or Device-Specific Emergency Lock
-        is_locked = (
-            self._get_setting(f"emergency_lock_{self.device_id}", "false").lower() == "true" or
-            self._get_setting("emergency_lock_1", "false").lower() == "true" or
-            self._get_setting("emergency_lock_163", "false").lower() == "true" or
-            self._get_setting("emergency_lock", "false").lower() == "true"
-        )
+        if self.device_id in (1, 163):
+            is_locked = (
+                self._get_setting("emergency_lock_1", "false").lower() == "true" or
+                self._get_setting("emergency_lock_163", "false").lower() == "true" or
+                self._get_setting("emergency_lock", "false").lower() == "true"
+            )
+        else:
+            is_locked = self._get_setting(f"emergency_lock_{self.device_id}", "false").lower() == "true"
+
         if is_locked:
             self._lock_screen()
             self._close_process(pid, pname)
@@ -201,12 +204,14 @@ class Enforcer:
             return False, "Emergency Lock"
 
         # 2. Check Study Mode (Manual or Scheduled)
-        study_mode_manual = (
-            self._get_setting(f"study_mode_active_{self.device_id}", "false").lower() == "true" or
-            self._get_setting("study_mode_active_1", "false").lower() == "true" or
-            self._get_setting("study_mode_active_163", "false").lower() == "true" or
-            self._get_setting("study_mode_active", "false").lower() == "true"
-        )
+        if self.device_id in (1, 163):
+            study_mode_manual = (
+                self._get_setting("study_mode_active_1", "false").lower() == "true" or
+                self._get_setting("study_mode_active_163", "false").lower() == "true" or
+                self._get_setting("study_mode_active", "false").lower() == "true"
+            )
+        else:
+            study_mode_manual = self._get_setting(f"study_mode_active_{self.device_id}", "false").lower() == "true"
         current_hour = datetime.now().hour
         study_start = int(self._get_setting("study_start_hour", "19"))
         study_end = int(self._get_setting("study_end_hour", "22"))
@@ -279,23 +284,29 @@ class Enforcer:
         """Scans running processes and terminates any blocked apps, study-mode violations, or emergency locks."""
         self.refresh_rules_and_usage()
 
-        study_mode_manual = (
-            self._get_setting(f"study_mode_active_{self.device_id}", "false").lower() == "true" or
-            self._get_setting("study_mode_active_1", "false").lower() == "true" or
-            self._get_setting("study_mode_active_163", "false").lower() == "true" or
-            self._get_setting("study_mode_active", "false").lower() == "true"
-        )
+        if self.device_id in (1, 163):
+            study_mode_manual = (
+                self._get_setting("study_mode_active_1", "false").lower() == "true" or
+                self._get_setting("study_mode_active_163", "false").lower() == "true" or
+                self._get_setting("study_mode_active", "false").lower() == "true"
+            )
+        else:
+            study_mode_manual = self._get_setting(f"study_mode_active_{self.device_id}", "false").lower() == "true"
+
         current_hour = datetime.now().hour
         study_start = int(self._get_setting("study_start_hour", "19"))
         study_end = int(self._get_setting("study_end_hour", "22"))
         is_scheduled_study_time = (study_start <= current_hour < study_end)
         is_study_active = study_mode_manual or is_scheduled_study_time
-        emergency_lock = (
-            self._get_setting(f"emergency_lock_{self.device_id}", "false").lower() == "true" or
-            self._get_setting("emergency_lock_1", "false").lower() == "true" or
-            self._get_setting("emergency_lock_163", "false").lower() == "true" or
-            self._get_setting("emergency_lock", "false").lower() == "true"
-        )
+
+        if self.device_id in (1, 163):
+            emergency_lock = (
+                self._get_setting("emergency_lock_1", "false").lower() == "true" or
+                self._get_setting("emergency_lock_163", "false").lower() == "true" or
+                self._get_setting("emergency_lock", "false").lower() == "true"
+            )
+        else:
+            emergency_lock = self._get_setting(f"emergency_lock_{self.device_id}", "false").lower() == "true"
 
         try:
             for proc in psutil.process_iter(['pid', 'name']):

@@ -662,97 +662,96 @@ def get_latest_screenshot(device_id):
 
 def request_on_demand_screenshot(device_id=None):
     """Sets a request flag for the background tracker to take a screenshot immediately."""
-    if device_id:
-        dev_id = _resolve_device_id(device_id)
-        set_setting(f"pending_screenshot_request_{dev_id}", "true")
+    dev_id = _resolve_device_id(device_id) if device_id else None
+    if dev_id in (1, 163) or dev_id is None:
+        set_setting("pending_screenshot_request", "true")
         set_setting("pending_screenshot_request_1", "true")
         set_setting("pending_screenshot_request_163", "true")
-    set_setting("pending_screenshot_request", "true")
+    else:
+        set_setting(f"pending_screenshot_request_{dev_id}", "true")
 
 def check_and_clear_screenshot_request(device_id=None):
     """Checks if on-demand screenshot was requested and resets the flag."""
-    if device_id:
-        dev_id = _resolve_device_id(device_id)
-        req = get_setting(f"pending_screenshot_request_{dev_id}", "false").lower() == "true"
+    dev_id = _resolve_device_id(device_id) if device_id else None
+    if dev_id in (1, 163) or dev_id is None:
+        req = (
+            get_setting("pending_screenshot_request", "false").lower() == "true" or
+            get_setting("pending_screenshot_request_1", "false").lower() == "true" or
+            get_setting("pending_screenshot_request_163", "false").lower() == "true"
+        )
         if req:
-            set_setting(f"pending_screenshot_request_{dev_id}", "false")
+            set_setting("pending_screenshot_request", "false")
+            set_setting("pending_screenshot_request_1", "false")
+            set_setting("pending_screenshot_request_163", "false")
             return True
-        if str(dev_id) != "1":
-            req1 = get_setting("pending_screenshot_request_1", "false").lower() == "true"
-            if req1:
-                set_setting("pending_screenshot_request_1", "false")
-                return True
-    req = get_setting("pending_screenshot_request", "false").lower() == "true"
-    if req:
-        set_setting("pending_screenshot_request", "false")
-        return True
-    return False
+        return False
+    else:
+        key = f"pending_screenshot_request_{dev_id}"
+        req = get_setting(key, "false").lower() == "true"
+        if req:
+            set_setting(key, "false")
+            return True
+        return False
 
 def toggle_emergency_lock(device_id=None):
-    """Toggles emergency screen lock for a specific device or globally, ensuring complete multi-key sync."""
-    if device_id:
-        dev_id = _resolve_device_id(device_id)
-        key = f"emergency_lock_{dev_id}"
+    """Toggles emergency screen lock for a specific device or globally, ensuring complete multi-device isolation."""
+    dev_id = _resolve_device_id(device_id) if device_id else None
+    if dev_id in (1, 163) or dev_id is None:
+        is_currently_locked = (
+            get_setting("emergency_lock", "false").lower() == "true" or
+            get_setting("emergency_lock_1", "false").lower() == "true" or
+            get_setting("emergency_lock_163", "false").lower() == "true"
+        )
+        new_state = "false" if is_currently_locked else "true"
+        set_setting("emergency_lock", new_state)
+        set_setting("emergency_lock_1", new_state)
+        set_setting("emergency_lock_163", new_state)
+        return new_state == "true"
     else:
-        dev_id = None
-        key = "emergency_lock"
-
-    # Check if ANY emergency lock key is currently True
-    is_currently_locked = (
-        get_setting(key, "false").lower() == "true" or
-        get_setting("emergency_lock", "false").lower() == "true" or
-        get_setting("emergency_lock_1", "false").lower() == "true" or
-        get_setting("emergency_lock_163", "false").lower() == "true" or
-        (dev_id is not None and get_setting(f"emergency_lock_{dev_id}", "false").lower() == "true")
-    )
-    # If ANY key was true, toggle to UNLOCK (false). If all false, toggle to LOCK (true).
-    new_state = "false" if is_currently_locked else "true"
-    set_setting("emergency_lock", new_state)
-    set_setting("emergency_lock_1", new_state)
-    set_setting("emergency_lock_163", new_state)
-    if dev_id:
-        set_setting(f"emergency_lock_{dev_id}", new_state)
-    return new_state == "true"
+        key = f"emergency_lock_{dev_id}"
+        is_currently_locked = get_setting(key, "false").lower() == "true"
+        new_state = "false" if is_currently_locked else "true"
+        set_setting(key, new_state)
+        return new_state == "true"
 
 def toggle_study_mode(device_id=None):
-    """Toggles study mode for a specific device or globally, ensuring complete multi-key sync."""
-    if device_id:
-        dev_id = _resolve_device_id(device_id)
-        key = f"study_mode_active_{dev_id}"
+    """Toggles study mode for a specific device or globally, ensuring complete multi-device isolation."""
+    dev_id = _resolve_device_id(device_id) if device_id else None
+    if dev_id in (1, 163) or dev_id is None:
+        is_currently_study = (
+            get_setting("study_mode_active", "false").lower() == "true" or
+            get_setting("study_mode_active_1", "false").lower() == "true" or
+            get_setting("study_mode_active_163", "false").lower() == "true"
+        )
+        new_state = "false" if is_currently_study else "true"
+        set_setting("study_mode_active", new_state)
+        set_setting("study_mode_active_1", new_state)
+        set_setting("study_mode_active_163", new_state)
+        return new_state == "true"
     else:
-        dev_id = None
-        key = "study_mode_active"
-
-    is_currently_study = (
-        get_setting(key, "false").lower() == "true" or
-        get_setting("study_mode_active", "false").lower() == "true" or
-        get_setting("study_mode_active_1", "false").lower() == "true" or
-        get_setting("study_mode_active_163", "false").lower() == "true" or
-        (dev_id is not None and get_setting(f"study_mode_active_{dev_id}", "false").lower() == "true")
-    )
-    new_state = "false" if is_currently_study else "true"
-    set_setting("study_mode_active", new_state)
-    set_setting("study_mode_active_1", new_state)
-    set_setting("study_mode_active_163", new_state)
-    if dev_id:
-        set_setting(f"study_mode_active_{dev_id}", new_state)
-    return new_state == "true"
+        key = f"study_mode_active_{dev_id}"
+        is_currently_study = get_setting(key, "false").lower() == "true"
+        new_state = "false" if is_currently_study else "true"
+        set_setting(key, new_state)
+        return new_state == "true"
 
 def get_device_lock_and_study_status(device_id=None):
-    """Returns synchronized lock and study mode status for a specific device."""
+    """Returns synchronized lock and study mode status for a specific device with complete multi-device isolation."""
     dev_id = _resolve_device_id(device_id) if device_id else None
-    lock = (
-        get_setting("emergency_lock", "false").lower() == "true" or
-        get_setting("emergency_lock_1", "false").lower() == "true" or
-        get_setting("emergency_lock_163", "false").lower() == "true" or
-        (dev_id is not None and get_setting(f"emergency_lock_{dev_id}", "false").lower() == "true")
-    )
-    study = (
-        get_setting("study_mode_active", "false").lower() == "true" or
-        get_setting("study_mode_active_1", "false").lower() == "true" or
-        get_setting("study_mode_active_163", "false").lower() == "true" or
-        (dev_id is not None and get_setting(f"study_mode_active_{dev_id}", "false").lower() == "true")
-    )
+    if dev_id in (1, 163) or dev_id is None:
+        lock = (
+            get_setting("emergency_lock", "false").lower() == "true" or
+            get_setting("emergency_lock_1", "false").lower() == "true" or
+            get_setting("emergency_lock_163", "false").lower() == "true"
+        )
+        study = (
+            get_setting("study_mode_active", "false").lower() == "true" or
+            get_setting("study_mode_active_1", "false").lower() == "true" or
+            get_setting("study_mode_active_163", "false").lower() == "true"
+        )
+    else:
+        lock = get_setting(f"emergency_lock_{dev_id}", "false").lower() == "true"
+        study = get_setting(f"study_mode_active_{dev_id}", "false").lower() == "true"
     return {"emergency_lock": bool(lock), "study_mode_active": bool(study)}
 
 def save_keystroke_log(device_id, process_name, window_title, category_name, content, log_type="keystroke", recorded_at=None):

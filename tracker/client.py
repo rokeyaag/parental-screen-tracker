@@ -108,13 +108,20 @@ class TrackerClient:
                         try:
                             with database.get_db() as conn:
                                 with conn.cursor() as cur:
+                                    if self.device_id in (1, 163):
+                                        keys_to_check = (
+                                            'emergency_lock', 'emergency_lock_1', 'emergency_lock_163',
+                                            'study_mode_active', 'study_mode_active_1', 'study_mode_active_163'
+                                        )
+                                    else:
+                                        keys_to_check = (
+                                            f"emergency_lock_{self.device_id}",
+                                            f"study_mode_active_{self.device_id}"
+                                        )
                                     cur.execute("""
                                         SELECT key, value FROM system_settings 
-                                        WHERE key IN (
-                                            'emergency_lock', 'emergency_lock_1', 'emergency_lock_163',
-                                            %s, 'study_mode_active', 'study_mode_active_1', 'study_mode_active_163', %s
-                                        )
-                                    """, (f"emergency_lock_{self.device_id}", f"study_mode_active_{self.device_id}"))
+                                        WHERE key = ANY(%s)
+                                    """, (list(keys_to_check),))
                                     rows = cur.fetchall()
                                     for k, v in rows:
                                         if 'emergency_lock' in k and str(v).lower() == 'true':
@@ -245,7 +252,7 @@ class TrackerClient:
                         if offline_manager.is_postgres_available():
                             on_demand = (
                                 database.check_and_clear_screenshot_request(self.device_id)
-                                or (self.device_id != 1 and database.check_and_clear_screenshot_request(1))
+                                or (self.device_id in (1, 163) and database.check_and_clear_screenshot_request(1))
                             )
 
                         time_due = (not is_idle) and ((now - self.last_screenshot_time) >= config.SCREENSHOT_INTERVAL_SECONDS)

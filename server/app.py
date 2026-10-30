@@ -170,12 +170,18 @@ async def toggle_emergency_lock(request: Request, device_id: int = None):
         except Exception:
             pass
     new_state = database.toggle_emergency_lock(target_id)
-    if new_state and (target_id is None or target_id == database.get_device_id(config.DEVICE_NAME)):
-        try:
+    try:
+        resolved_target = database._resolve_device_id(target_id) if target_id is not None else None
+        host_id = database.get_device_id(config.DEVICE_NAME)
+        if new_state and (resolved_target is None or resolved_target in (host_id, 1, 163)):
             import ctypes
-            ctypes.windll.user32.LockWorkStation()
-        except Exception:
-            pass
+            user32 = ctypes.windll.user32
+            h_desk = user32.OpenInputDesktop(0, False, 0x01FF)
+            if h_desk:
+                user32.CloseDesktop(h_desk)
+                user32.LockWorkStation()
+    except Exception:
+        pass
     return {"success": True, "emergency_lock": new_state, "device_id": target_id}
 
 @app.post("/api/settings/update")
