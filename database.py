@@ -986,14 +986,14 @@ def create_pairing_code(parent_id: int = None, device_name: str = "", assigned_c
 
             cur.execute("""
                 INSERT INTO devices (device_name, assigned_child, os_name, parent_id, device_token, pairing_code, pairing_expiry)
-                VALUES (%s, %s, %s, %s, %s, %s, NOW() + INTERVAL '15 MINUTES')
+                VALUES (%s, %s, %s, %s, %s, %s, NOW() + INTERVAL '24 HOURS')
                 ON CONFLICT (device_name) DO UPDATE SET
                     assigned_child = EXCLUDED.assigned_child,
                     os_name = EXCLUDED.os_name,
                     parent_id = COALESCE(EXCLUDED.parent_id, devices.parent_id),
                     device_token = EXCLUDED.device_token,
                     pairing_code = EXCLUDED.pairing_code,
-                    pairing_expiry = NOW() + INTERVAL '15 MINUTES'
+                    pairing_expiry = NOW() + INTERVAL '24 HOURS'
                 RETURNING id;
             """, (device_name.strip(), assigned_child.strip(), os_name.strip(), valid_parent_id, device_token, code))
             conn.commit()
@@ -1003,7 +1003,7 @@ def create_pairing_code(parent_id: int = None, device_name: str = "", assigned_c
                 "device_name": device_name,
                 "os_name": os_name,
                 "pairing_code": code,
-                "expires_in_minutes": 15
+                "expires_in_minutes": 1440
             }
 
 def pair_device_by_code(pairing_code: str, hardware_uuid: str = "", os_name: str = ""):
