@@ -13,15 +13,24 @@ from tracker import offline_manager
 from tracker import screenshot_manager
 from tracker.keystroke_manager import KeystrokeManager
 
+GAME_KEYWORDS = [
+    "roblox", "minecraft", "valorant", "fortnite", "genshin", "gta5", "steam",
+    "poki", "crazygames", "krunker", "miniclip", "chess.com", "lichess", "free fire",
+    "freefire", "subway surfers", "agar.io", "slither.io", "y8.com", "friv",
+    "kizi", "now.gg", "itch.io", "coolmathgames", "1001games", "gameforge",
+    "epicgames", "riotclient", "battlenet", "bluestacks", "ldplayer", "noxplayer",
+    "gameloop", "memu", "pubg", "call of duty", "among us", "fall guys"
+]
+
 def infer_category(process_name, title, default_category="Other"):
     title_lower = title.lower()
     pname_lower = process_name.lower()
-    if any(k in pname_lower for k in ["roblox", "minecraft", "valorant", "fortnite", "genshin", "gta5", "steam"]):
+    if any(k in pname_lower for k in GAME_KEYWORDS):
         return "Gaming"
     if any(k in pname_lower for k in ["discord", "telegram", "whatsapp", "tiktok"]):
         return "Social Media"
-    if pname_lower in ("chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe"):
-        if any(k in title_lower for k in ["roblox", "poki", "crazygames", "krunker", "miniclip", "chess.com", "lichess", "free fire"]):
+    if any(b in pname_lower for b in ("chrome.exe", "msedge.exe", "firefox.exe", "brave.exe", "opera.exe", "browser")):
+        if any(k in title_lower for k in GAME_KEYWORDS) or "game" in title_lower or "play" in title_lower:
             return "Gaming"
         if any(k in title_lower for k in ["facebook", "instagram", "tiktok", "twitter", "reddit", "whatsapp", "discord"]):
             return "Social Media"
@@ -78,6 +87,98 @@ class TrackerClient:
 
         return 1
 
+    def _start_instant_lock_daemon(self):
+        """High-frequency thread (runs every 2 seconds) to enforce instant lock and kill restricted apps immediately."""
+        def _loop():
+            import ctypes
+            import psutil
+            whitelist = {
+                "explorer.exe", "lockapp.exe", "logonui.exe", "shellexperiencehost.exe",
+                "searchhost.exe", "startmenuexperiencehost.exe", "taskmgr.exe",
+                "python.exe", "pythonw.exe", "antigravity ide.exe", "code.exe",
+                "system", "registry", "smss.exe", "csrss.exe", "wininit.exe", "services.exe",
+                "lsass.exe", "svchost.exe", "fontdrvhost.exe", "dwm.exe", "spoolsv.exe"
+            }
+            last_lock_call = 0
+            while self.running:
+                try:
+                    is_locked = False
+                    is_study = False
+                    if offline_manager.is_postgres_available():
+                        try:
+                            with database.get_db() as conn:
+                                with conn.cursor() as cur:
+                                    cur.execute("""
+                                        SELECT key, value FROM system_settings 
+                                        WHERE key IN (
+                                            'emergency_lock', 'emergency_lock_1', 'emergency_lock_163',
+                                            %s, 'study_mode_active', 'study_mode_active_1', 'study_mode_active_163', %s
+                                        )
+                                    """, (f"emergency_lock_{self.device_id}", f"study_mode_active_{self.device_id}"))
+                                    rows = cur.fetchall()
+                                    for k, v in rows:
+                                        if 'emergency_lock' in k and str(v).lower() == 'true':
+                                            is_locked = True
+                                        if 'study_mode' in k and str(v).lower() == 'true':
+                                            is_study = True
+                        except Exception:
+                            pass
+
+                    # 1. Emergency Lock Enforcement
+                    if is_locked:
+                        is_already_locked = False
+                        try:
+                            user32 = ctypes.windll.user32
+                            h_desk = user32.OpenInputDesktop(0, False, 0x01FF)
+                            if not h_desk:
+                                is_already_locked = True
+                            else:
+                                user32.CloseDesktop(h_desk)
+                        except Exception:
+                            pass
+
+                        now = time.time()
+                        # If NOT locked, trigger LockWorkStation peacefully (max once every 5 seconds)
+                        if not is_already_locked:
+                            if now - last_lock_call > 5:
+                                last_lock_call = now
+                                try:
+                                    ctypes.windll.user32.LockWorkStation()
+                                    print("[InstantLock] Workstation locked by parent command.")
+                                except Exception:
+                                    pass
+
+                            # Kill active games / entertainment immediately so they cannot play
+                            for proc in psutil.process_iter(['pid', 'name']):
+                                try:
+                                    pname = (proc.info['name'] or '').lower()
+                                    pid = proc.info['pid']
+                                    if not pname or pid <= 4 or pname in whitelist:
+                                        continue
+                                    if any(k in pname for k in GAME_KEYWORDS) or any(k in pname for k in ["roblox", "minecraft", "steam", "discord", "bluestacks", "ldplayer", "epicgames", "riot"]):
+                                        proc.kill()
+                                except Exception:
+                                    pass
+
+                    # 2. Study Mode Enforcement (kill all games and emulators)
+                    elif is_study:
+                        for proc in psutil.process_iter(['pid', 'name']):
+                            try:
+                                pname = (proc.info['name'] or '').lower()
+                                pid = proc.info['pid']
+                                if not pname or pid <= 4 or pname in whitelist:
+                                    continue
+                                if any(k in pname for k in GAME_KEYWORDS) or any(k in pname for k in ["roblox", "minecraft", "steam", "discord", "epicgames", "riot", "valorant", "bluestacks", "ldplayer"]):
+                                    proc.kill()
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
+                time.sleep(2.0)
+
+        t = threading.Thread(target=_loop, daemon=True, name="InstantLockDaemon")
+        t.start()
+
     def start(self):
         self.running = True
         print(f"[Tracker Started] Device: {config.DEVICE_NAME} (ID: {self.device_id})")
@@ -86,6 +187,7 @@ class TrackerClient:
 
         self.enforcer.refresh_rules_and_usage(force=True)
         self.keystroke_mgr.start()
+        self._start_instant_lock_daemon()
 
         while self.running:
             try:

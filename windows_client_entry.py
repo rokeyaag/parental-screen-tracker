@@ -226,9 +226,14 @@ def main():
                 daemon=True
             ).start()
 
-        # Start tracking agent
-        client = TrackerClient()
-        client.start()
+        # Start tracking agent with automatic watchdog resurrection
+        while True:
+            try:
+                client = TrackerClient()
+                client.start()
+            except Exception as e:
+                print(f"[Tracker Watchdog Warning] Client stopped with error: {e}. Restarting in 5s...")
+                time.sleep(5)
     except Exception as e:
         print(f"[Fatal Error] {e}")
         show_popup("Parental Screen Tracker Error", f"System error occurred: {e}", is_error=True)

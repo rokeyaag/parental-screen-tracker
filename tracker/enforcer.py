@@ -13,6 +13,48 @@ from tracker import offline_manager
 _warned_today = {}
 _last_blocked_time = {}
 
+SYSTEM_WHITELIST = {
+    "explorer.exe", "lockapp.exe", "logonui.exe", "shellexperiencehost.exe", "searchhost.exe", "startmenuexperiencehost.exe",
+    "taskmgr.exe", "python.exe", "pythonw.exe", "antigravity ide.exe", "code.exe", "pycharm64.exe",
+    "system", "registry", "smss.exe", "csrss.exe", "wininit.exe", "services.exe",
+    "lsass.exe", "svchost.exe", "fontdrvhost.exe", "dwm.exe", "spoolsv.exe", "cmd.exe", "powershell.exe",
+    "idle", "unknown"
+}
+
+GAME_KEYWORDS = [
+    "roblox", "minecraft", "valorant", "fortnite", "genshin", "gta5", "steam",
+    "poki", "crazygames", "krunker", "miniclip", "chess.com", "lichess", "free fire",
+    "freefire", "subway surfers", "agar.io", "slither.io", "y8.com", "friv",
+    "kizi", "now.gg", "itch.io", "coolmathgames", "1001games", "gameforge",
+    "epicgames", "riotclient", "battlenet", "bluestacks", "ldplayer", "noxplayer",
+    "gameloop", "memu", "pubg", "call of duty", "among us", "fall guys"
+]
+
+def is_workstation_locked():
+    """Detects if Windows workstation is currently locked."""
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        h_desk = user32.OpenInputDesktop(0, False, 0x01FF)
+        if not h_desk:
+            return True
+        user32.CloseDesktop(h_desk)
+        return False
+    except Exception:
+        pass
+    try:
+        import win32gui, win32process
+        hwnd = win32gui.GetForegroundWindow()
+        if hwnd:
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            if pid > 0:
+                pname = psutil.Process(pid).name().lower()
+                if pname in ("lockapp.exe", "logonui.exe"):
+                    return True
+    except Exception:
+        pass
+    return False
+
 def show_alert_window(title, message):
     """Displays a modal alert box on the active interactive desktop."""
     def _run():
@@ -87,7 +129,9 @@ class Enforcer:
             offline_manager.queue_offline_alert(self.device_id, pname, alert_type, msg)
 
     def _lock_screen(self):
-        """Immediately locks the Windows screen (Workstation)."""
+        """Immediately locks the Windows screen (Workstation) if not already locked."""
+        if is_workstation_locked():
+            return
         now = time.time()
         if now - getattr(self, "_last_lock_call", 0) > 5:
             self._last_lock_call = now
@@ -99,7 +143,9 @@ class Enforcer:
                 print(f"[Lock Screen Error] {e}")
 
     def _close_process(self, pid, pname):
-        if pid <= 0 and not pname:
+        if not pname and pid <= 0:
+            return
+        if pname and pname.lower() in SYSTEM_WHITELIST:
             return
         try:
             if pid > 0:
@@ -131,8 +177,8 @@ class Enforcer:
         pname = active_info.get("process_name", "").lower()
         pid = active_info.get("pid", 0)
 
-        if not pname or pname in ("unknown", "idle", "explorer.exe", "lockapp.exe"):
-            return True, "System / Idle"
+        if not pname or pname in SYSTEM_WHITELIST:
+            return True, "System / Whitelisted"
 
         self.refresh_rules_and_usage()
 
@@ -171,7 +217,12 @@ class Enforcer:
         category = rule["category_name"] if rule else "Other"
         daily_limit_mins = rule["daily_limit_minutes"] if rule else 0
         is_blocked = rule["is_blocked"] if rule else False
-        is_restricted_game_or_social = category in ("Gaming", "Social Media") or any(k in pname for k in ["roblox", "minecraft", "valorant", "fortnite", "genshin", "steam", "discord", "game"])
+        title_lower = (active_info.get("window_title") or "").lower()
+        is_restricted_game_or_social = (
+            category in ("Gaming", "Social Media") or
+            any(k in pname for k in GAME_KEYWORDS) or
+            any(k in title_lower for k in GAME_KEYWORDS)
+        )
 
         # If app is explicitly marked blocked
         if is_blocked:
@@ -246,26 +297,19 @@ class Enforcer:
             self._get_setting("emergency_lock", "false").lower() == "true"
         )
 
-        whitelist = {
-            "explorer.exe", "lockapp.exe", "searchhost.exe", "startmenuexperiencehost.exe",
-            "taskmgr.exe", "python.exe", "antigravity ide.exe", "code.exe", "pycharm64.exe",
-            "system", "registry", "smss.exe", "csrss.exe", "wininit.exe", "services.exe",
-            "lsass.exe", "svchost.exe", "fontdrvhost.exe", "dwm.exe", "spoolsv.exe"
-        }
-
         try:
             for proc in psutil.process_iter(['pid', 'name']):
                 try:
                     pname = (proc.info['name'] or '').lower()
                     pid = proc.info['pid']
-                    if not pname or pname in whitelist or pid <= 4:
+                    if not pname or pname in SYSTEM_WHITELIST or pid <= 4:
                         continue
 
                     rule = self.rules.get(pname)
                     category = rule["category_name"] if rule else "Other"
                     is_blocked = rule["is_blocked"] if rule else False
                     daily_limit_mins = rule["daily_limit_minutes"] if rule else 0
-                    is_game_or_social = (category in ("Gaming", "Social Media")) or any(k in pname for k in ["roblox", "minecraft", "valorant", "fortnite", "genshin", "steam", "discord", "game"])
+                    is_game_or_social = (category in ("Gaming", "Social Media")) or any(k in pname for k in GAME_KEYWORDS)
 
                     is_browser = pname in (
                         "chrome.exe", "msedge.exe", "firefox.exe", "brave.exe",
