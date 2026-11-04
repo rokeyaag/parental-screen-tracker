@@ -3,14 +3,49 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import io
+import time
 import base64
 import ctypes
 import traceback
 from datetime import datetime
-from PIL import Image, ImageGrab
+from PIL import Image, ImageGrab, ImageDraw, ImageFont
 import config
 import database
 from tracker import offline_manager
+
+def is_workstation_locked():
+    """Checks if the Windows workstation is currently locked or secure desktop is active."""
+    try:
+        user32 = ctypes.windll.user32
+        h_desk = user32.OpenInputDesktop(0, False, 0x01FF)
+        if not h_desk:
+            return True
+        user32.CloseDesktop(h_desk)
+        return False
+    except Exception:
+        return False
+
+def generate_locked_placeholder(process_name="System", window_title="Screen Locked"):
+    """Generates an informative dark card image when screen is locked or display is powered off."""
+    try:
+        w = getattr(config, 'SCREENSHOT_WIDTH', 1024)
+        h = getattr(config, 'SCREENSHOT_HEIGHT', 576)
+        img = Image.new("RGB", (w, h), color=(15, 23, 42))
+        draw = ImageDraw.Draw(img)
+        card_w, card_h = 560, 260
+        x0, y0 = (w - card_w) // 2, (h - card_h) // 2
+        x1, y1 = x0 + card_w, y0 + card_h
+        draw.rectangle([x0, y0, x1, y1], fill=(30, 41, 59), outline=(51, 65, 85), width=2)
+        
+        now_str = datetime.now().strftime("%I:%M:%S %p, %d %b %Y")
+        draw.text((x0 + 30, y0 + 35), "[ SCREEN LOCKED / AWAY ]", fill=(239, 68, 68))
+        draw.text((x0 + 30, y0 + 80), "Status: Workstation is locked or in sleep mode", fill=(241, 245, 249))
+        draw.text((x0 + 30, y0 + 120), f"Active App: {process_name}", fill=(148, 163, 184))
+        draw.text((x0 + 30, y0 + 155), f"Window: {window_title[:45]}", fill=(148, 163, 184))
+        draw.text((x0 + 30, y0 + 200), f"Timestamp: {now_str}", fill=(56, 189, 248))
+        return img
+    except Exception:
+        return Image.new("RGB", (1024, 576), color=(15, 23, 42))
 
 def attach_desktop_station():
     """Attaches current thread to default interactive desktop station on Windows."""
@@ -94,7 +129,11 @@ def capture_and_store(device_id, process_name, window_title, category_name):
     try:
         img = capture_screen_image()
         if not img:
-            return None
+            # If screen capture is blank or desktop is locked/sleeping, generate informative placeholder
+            if is_workstation_locked() or process_name in ("csrss.exe", "logonui.exe", "lockapp.exe", "idle"):
+                img = generate_locked_placeholder(process_name, window_title)
+            else:
+                return None
 
         # Full image (1024x576, 65% quality)
         image_data = process_and_encode(
@@ -114,41 +153,32 @@ def capture_and_store(device_id, process_name, window_title, category_name):
             quality=55
         )
 
-        # Save to PostgreSQL if online
-        if offline_manager.is_postgres_available():
-            new_id = database.save_screenshot(
-                device_id=device_id,
-                process_name=process_name,
-                window_title=window_title,
-                category_name=category_name,
-                image_data=image_data,
-                thumbnail_data=thumbnail_data,
-                max_stored=config.SCREENSHOT_MAX_STORED,
-                captured_at=datetime.now()
-            )
-            # Also keep primary device 1 in sync if this laptop is paired as a sub-device
-            if str(device_id) != "1":
-                try:
-                    database.save_screenshot(
-                        device_id=1,
-                        process_name=process_name,
-                        window_title=window_title,
-                        category_name=category_name,
-                        image_data=image_data,
-                        thumbnail_data=thumbnail_data,
-                        max_stored=config.SCREENSHOT_MAX_STORED,
-                        captured_at=datetime.now()
-                    )
-                except Exception:
-                    pass
-            print(f"[Screenshot Saved] ID: {new_id} | App: {process_name} | Size: ~{len(image_data)//1024}KB")
-            return new_id
-        else:
-            print("[Screenshot Offline] PostgreSQL unavailable; skipping offline image persistence.")
-            return None
+        # Save to PostgreSQL (retry once if transient connection drop)
+        save_err = None
+        for attempt in range(2):
+            try:
+                new_id = database.save_screenshot(
+                    device_id=device_id,
+                    process_name=process_name,
+                    window_title=window_title,
+                    category_name=category_name,
+                    image_data=image_data,
+                    thumbnail_data=thumbnail_data,
+                    max_stored=config.SCREENSHOT_MAX_STORED,
+                    captured_at=datetime.now()
+                )
+                print(f"[Screenshot Saved] ID: {new_id} | App: {process_name} | Size: ~{len(image_data)//1024}KB")
+                return new_id
+            except Exception as e:
+                save_err = e
+                time.sleep(1.0)
+
+        print(f"[Screenshot Save Error] Failed after retry: {save_err}")
+        return None
     except Exception as e:
         print(f"[Screenshot Store Error] {e}")
         traceback.print_exc()
+        return None
         return None
 
 if __name__ == "__main__":

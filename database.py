@@ -37,12 +37,45 @@ def get_pool():
 
 @contextmanager
 def get_db():
+    global _db_pool
     p = get_pool()
-    conn = p.getconn()
+    conn = None
     try:
+        conn = p.getconn()
+    except Exception:
+        # Re-initialize pool if corrupted or exhausted
+        try:
+            p.closeall()
+        except Exception:
+            pass
+        _db_pool = None
+        p = get_pool()
+        conn = p.getconn()
+
+    try:
+        if conn.closed != 0:
+            try:
+                p.putconn(conn, close=True)
+            except Exception:
+                pass
+            conn = p.getconn()
         yield conn
+    except Exception:
+        if conn and conn.closed == 0:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        raise
     finally:
-        p.putconn(conn)
+        if conn:
+            if conn.closed != 0:
+                try:
+                    p.putconn(conn, close=True)
+                except Exception:
+                    pass
+            else:
+                p.putconn(conn)
 
 def init_db():
     tz_option = f"-c timezone={getattr(config, 'TIMEZONE', 'Asia/Dhaka')}"
