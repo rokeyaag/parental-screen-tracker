@@ -59,8 +59,8 @@ export default function ZoomableImageViewer({
   const resetZoom = (animated = true) => {
     if (animated) {
       Animated.parallel([
-        Animated.spring(scale, { toValue: 1, useNativeDriver: false, friction: 7 }),
-        Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false, friction: 7 }),
+        Animated.spring(scale, { toValue: 1, useNativeDriver: false, friction: 7, tension: 40 }),
+        Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false, friction: 7, tension: 40 }),
       ]).start();
     } else {
       scale.setValue(1);
@@ -68,6 +68,7 @@ export default function ZoomableImageViewer({
       scaleValue.current = 1;
       panValue.current = { x: 0, y: 0 };
     }
+    initialDistance.current = 0;
   };
 
   const handleDoubleTap = () => {
@@ -75,8 +76,8 @@ export default function ZoomableImageViewer({
       resetZoom(true);
     } else {
       Animated.parallel([
-        Animated.spring(scale, { toValue: 2.8, useNativeDriver: false, friction: 7 }),
-        Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false, friction: 7 }),
+        Animated.spring(scale, { toValue: 2.5, useNativeDriver: false, friction: 6, tension: 40 }),
+        Animated.spring(pan, { toValue: { x: 0, y: 0 }, useNativeDriver: false, friction: 6, tension: 40 }),
       ]).start();
     }
   };
@@ -86,7 +87,7 @@ export default function ZoomableImageViewer({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt, gestureState) => {
-        const touches = evt.nativeEvent.touches;
+        const touches = evt.nativeEvent.touches || [];
         if (touches.length === 2) {
           initialDistance.current = calcDistance(
             touches[0].pageX,
@@ -95,7 +96,8 @@ export default function ZoomableImageViewer({
             touches[1].pageY
           );
           initialScale.current = scaleValue.current;
-        } else if (touches.length === 1) {
+        } else {
+          initialDistance.current = 0;
           pan.setOffset({
             x: panValue.current.x,
             y: panValue.current.y,
@@ -104,39 +106,44 @@ export default function ZoomableImageViewer({
         }
       },
       onPanResponderMove: (evt, gestureState) => {
-        const touches = evt.nativeEvent.touches;
+        const touches = evt.nativeEvent.touches || [];
         if (touches.length === 2) {
-          // ✌️ Two finger pinch-to-zoom
+          // ✌️ 2 Fingers: Pinch to zoom / stretch
           const currentDist = calcDistance(
             touches[0].pageX,
             touches[0].pageY,
             touches[1].pageX,
             touches[1].pageY
           );
-          if (initialDistance.current > 0) {
-            const factor = currentDist / initialDistance.current;
-            const newScale = Math.min(Math.max(initialScale.current * factor, 0.8), 5.0);
-            scale.setValue(newScale);
+          // Set initialDistance dynamically if second finger landed with a slight delay
+          if (!initialDistance.current || initialDistance.current <= 0) {
+            initialDistance.current = currentDist;
+            initialScale.current = scaleValue.current;
+            return;
           }
-        } else if (touches.length === 1 && scaleValue.current > 1.05) {
-          // 👆 One finger panning when zoomed in
-          pan.setValue({
-            x: gestureState.dx,
-            y: gestureState.dy,
-          });
+          const factor = currentDist / initialDistance.current;
+          const targetScale = Math.min(Math.max(initialScale.current * factor, 0.8), 5.0);
+          scale.setValue(targetScale);
+        } else if (touches.length === 1) {
+          initialDistance.current = 0;
+          if (scaleValue.current > 1.05) {
+            // 👆 1 Finger: Pan around when zoomed in
+            pan.setValue({
+              x: gestureState.dx,
+              y: gestureState.dy,
+            });
+          }
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
+        initialDistance.current = 0;
         pan.flattenOffset();
         const now = Date.now();
-        const DOUBLE_TAP_DELAY = 300;
+        const DOUBLE_TAP_DELAY = 380; // Reliable 380ms tap window
 
-        // Double tap detection
-        if (
-          Math.abs(gestureState.dx) < 8 &&
-          Math.abs(gestureState.dy) < 8 &&
-          evt.nativeEvent.touches.length === 0
-        ) {
+        // Reliable double tap detection with 25px Android touch tolerance
+        const isTap = Math.abs(gestureState.dx) < 25 && Math.abs(gestureState.dy) < 25;
+        if (isTap) {
           if (now - lastTap.current < DOUBLE_TAP_DELAY) {
             handleDoubleTap();
             lastTap.current = 0;
@@ -145,7 +152,7 @@ export default function ZoomableImageViewer({
           lastTap.current = now;
         }
 
-        // Spring back if pinched too small
+        // Snap back to 1.0x if pinched smaller than default
         if (scaleValue.current < 1.0) {
           resetZoom(true);
         } else if (scaleValue.current === 1.0) {
@@ -191,15 +198,15 @@ export default function ZoomableImageViewer({
           </TouchableOpacity>
         </View>
 
-        {/* Gesture Hint & Zoom Badge Toolbar */}
+        {/* Gesture Hint Bar & Zoom Status */}
         <View style={styles.hintBar}>
           <View style={styles.hintTextWrap}>
-            <Text style={styles.hintText}>✌️ Pinch to zoom • 👆 Double-tap</Text>
+            <Text style={styles.hintText}>✌️ ২ আঙুলে টেনে বড় করুন • 👆 ডাবল ট্যাপে জুম</Text>
           </View>
 
           {scaleValue.current > 1.05 && (
             <TouchableOpacity style={styles.zoomPill} onPress={() => resetZoom(true)} activeOpacity={0.8}>
-              <Text style={styles.zoomPillText}>🔍 {zoomDisplay} (Tap to Reset)</Text>
+              <Text style={styles.zoomPillText}>🔍 {zoomDisplay} (ট্যাপ করে রিসেট)</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -232,7 +239,7 @@ export default function ZoomableImageViewer({
             📅 {screenshot.time_str || 'Today'}
           </Text>
           <Text style={styles.footerHelp}>
-            Tip: Double-tap anywhere to inspect text details
+            ডাবল ট্যাপে ২.৫ গুণ বড় হবে এবং টেনে যেকোনো কোণা দেখতে পারবেন
           </Text>
         </View>
       </SafeAreaView>
@@ -303,9 +310,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   hintText: {
-    color: '#94a3b8',
-    fontSize: 10,
-    fontWeight: '600',
+    color: '#38bdf8',
+    fontSize: 11,
+    fontWeight: '700',
   },
   zoomPill: {
     backgroundColor: '#0284c7',
@@ -349,8 +356,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   footerHelp: {
-    color: '#64748b',
+    color: '#94a3b8',
     fontSize: 10,
   },
 });
-

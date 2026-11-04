@@ -2,6 +2,8 @@ import http.server
 import socketserver
 import os
 import socket
+import sys
+import time
 from pathlib import Path
 
 PORT = 8080
@@ -13,16 +15,32 @@ candidates = [
 ]
 DIRECTORY = str(next((p for p in candidates if (p / "ParentalScreenTracker.apk").exists()), Path(r"C:\Users\HP\Desktop")))
 
+class ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
+    def handle_error(self, request, client_address):
+        # Ignore client disconnects/aborts cleanly
+        exc_type, exc_val, _ = sys.exc_info()
+        if exc_type in (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            return
+        super().handle_error(request, client_address)
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
 
+    def log_message(self, format, *args):
+        # Concise logging
+        sys.stderr.write("%s - - [%s] %s\n" % (self.address_string(), self.log_date_time_string(), format%args))
+
     def do_GET(self):
-        if self.path in ('/', '/index.html'):
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html; charset=utf-8')
-            self.end_headers()
-            html = """<!DOCTYPE html>
+        try:
+            if self.path in ('/', '/index.html'):
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html; charset=utf-8')
+                self.end_headers()
+                html = """<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -59,11 +77,18 @@ p { font-size: 13px; color: #94a3b8; line-height: 1.5; margin: 4px 0 16px 0; }
 </div>
 </body>
 </html>"""
-            self.wfile.write(html.encode('utf-8'))
-        else:
-            return super().do_GET()
+                self.wfile.write(html.encode('utf-8'))
+            else:
+                return super().do_GET()
+        except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+            pass
 
 if __name__ == '__main__':
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
-        print(f"Serving APK server on port {PORT} from {DIRECTORY}...")
-        httpd.serve_forever()
+    print(f"Serving resilient multi-threaded download server on port {PORT} from {DIRECTORY}...")
+    while True:
+        try:
+            with ThreadingHTTPServer(("", PORT), Handler) as httpd:
+                httpd.serve_forever()
+        except Exception as e:
+            sys.stderr.write(f"Server error: {e}, restarting in 2 seconds...\n")
+            time.sleep(2)
