@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform, LogBox } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform, LogBox, ActivityIndicator } from 'react-native';
 import { colors } from './src/theme/colors';
 import { DeviceProvider, useDevices } from './src/context/DeviceContext';
 
@@ -13,6 +13,7 @@ import TimelineScreen from './src/screens/TimelineScreen';
 import AlertsScreen from './src/screens/AlertsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ChildClientScreen from './src/screens/ChildClientScreen';
+import RoleSelectionScreen from './src/screens/RoleSelectionScreen';
 
 const TABS = [
   { key: 'home', label: 'Overview', icon: '📊' },
@@ -24,12 +25,6 @@ const TABS = [
 
 function MainNavigator() {
   const [activeTab, setActiveTab] = useState('home');
-  const { appMode } = useDevices();
-
-  // If this phone is running in Sub-Device (Child) mode, render Child Client Screen
-  if (appMode === 'sub') {
-    return <ChildClientScreen />;
-  }
 
   const renderScreen = () => {
     switch (activeTab) {
@@ -86,15 +81,53 @@ function MainNavigator() {
   );
 }
 
+function RootApp() {
+  const { isInitialized, appMode } = useDevices();
+
+  if (!isInitialized) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#0f172a" />
+        <Text style={styles.loadingText}>Initializing Parental Screen Tracker...</Text>
+      </View>
+    );
+  }
+
+  // If no role has been chosen yet, show Role Selection Screen
+  if (!appMode) {
+    return <RoleSelectionScreen />;
+  }
+
+  // If Child Sub-Device mode, render strictly Child Client Screen
+  if (appMode === 'sub') {
+    return <ChildClientScreen />;
+  }
+
+  // Parent Main Controller mode
+  return <MainNavigator />;
+}
+
 export default function App() {
   return (
     <DeviceProvider>
-      <MainNavigator />
+      <RootApp />
     </DeviceProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 14,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#475569',
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#ffffff',

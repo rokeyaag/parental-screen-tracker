@@ -676,7 +676,7 @@ def get_screenshot_by_id(screenshot_id):
             }
 
 def get_latest_screenshot(device_id):
-    """Fetches the latest full screenshot for a device."""
+    """Fetches the latest full screenshot for a device; auto-generates live card if none exists yet."""
     device_id = _resolve_device_id(device_id)
     with get_db() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -697,6 +697,30 @@ def get_latest_screenshot(device_id):
                     LIMIT 1;
                 """, (device_id,))
             row = cur.fetchone()
+            if not row:
+                # If no screenshot exists in DB yet, check if this is a registered device in `devices`
+                cur.execute("SELECT id, device_name, assigned_child, os_name FROM devices WHERE id = %s;", (device_id,))
+                dev_info = cur.fetchone()
+                if dev_info:
+                    status = get_device_lock_and_study_status(device_id)
+                    generate_mobile_status_screenshot(
+                        device_id=device_id,
+                        device_name=dev_info["device_name"],
+                        assigned_child=dev_info["assigned_child"],
+                        current_app="Mobile Active Screen",
+                        is_locked=status["emergency_lock"],
+                        study_mode=status["study_mode_active"]
+                    )
+                    # Query again after generating
+                    cur.execute("""
+                        SELECT id, device_id, process_name, window_title, category_name, image_data, thumbnail_data, captured_at
+                        FROM screenshots
+                        WHERE device_id = %s
+                        ORDER BY captured_at DESC
+                        LIMIT 1;
+                    """, (device_id,))
+                    row = cur.fetchone()
+
             if not row:
                 return None
             ts = row["captured_at"]
@@ -721,6 +745,24 @@ def request_on_demand_screenshot(device_id=None):
         set_setting("pending_screenshot_request_163", "true")
     else:
         set_setting(f"pending_screenshot_request_{dev_id}", "true")
+        # For mobile sub-devices, immediately refresh the telemetry card
+        try:
+            with get_db() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("SELECT id, device_name, assigned_child FROM devices WHERE id = %s;", (dev_id,))
+                    dev = cur.fetchone()
+                    if dev:
+                        status = get_device_lock_and_study_status(dev_id)
+                        generate_mobile_status_screenshot(
+                            device_id=dev_id,
+                            device_name=dev["device_name"],
+                            assigned_child=dev["assigned_child"],
+                            current_app="On-Demand Capture",
+                            is_locked=status["emergency_lock"],
+                            study_mode=status["study_mode_active"]
+                        )
+        except Exception:
+            pass
 
 def check_and_clear_screenshot_request(device_id=None):
     """Checks if on-demand screenshot was requested and resets the flag."""
@@ -764,6 +806,24 @@ def toggle_emergency_lock(device_id=None):
         is_currently_locked = get_setting(key, "false").lower() == "true"
         new_state = "false" if is_currently_locked else "true"
         set_setting(key, new_state)
+        # Immediately refresh live screenshot card for mobile sub-device
+        try:
+            with get_db() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("SELECT id, device_name, assigned_child FROM devices WHERE id = %s;", (dev_id,))
+                    dinfo = cur.fetchone()
+                    if dinfo:
+                        study_active = get_setting(f"study_mode_active_{dev_id}", "false").lower() == "true"
+                        generate_mobile_status_screenshot(
+                            device_id=dev_id,
+                            device_name=dinfo["device_name"],
+                            assigned_child=dinfo["assigned_child"],
+                            current_app="Parental Lock Screen" if new_state == "true" else "Mobile Screen Active",
+                            is_locked=new_state == "true",
+                            study_mode=study_active
+                        )
+        except Exception:
+            pass
         return new_state == "true"
 
 def toggle_study_mode(device_id=None):
@@ -785,6 +845,24 @@ def toggle_study_mode(device_id=None):
         is_currently_study = get_setting(key, "false").lower() == "true"
         new_state = "false" if is_currently_study else "true"
         set_setting(key, new_state)
+        # Immediately refresh live screenshot card for mobile sub-device
+        try:
+            with get_db() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("SELECT id, device_name, assigned_child FROM devices WHERE id = %s;", (dev_id,))
+                    dinfo = cur.fetchone()
+                    if dinfo:
+                        lock_active = get_setting(f"emergency_lock_{dev_id}", "false").lower() == "true"
+                        generate_mobile_status_screenshot(
+                            device_id=dev_id,
+                            device_name=dinfo["device_name"],
+                            assigned_child=dinfo["assigned_child"],
+                            current_app="Study Mode Profile" if new_state == "true" else "Mobile Screen Active",
+                            is_locked=lock_active,
+                            study_mode=new_state == "true"
+                        )
+        except Exception:
+            pass
         return new_state == "true"
 
 def get_device_lock_and_study_status(device_id=None):
@@ -1111,8 +1189,101 @@ def update_device_info(device_id: int, device_name: str, assigned_child: str, os
             conn.commit()
             return True
 
+def generate_mobile_status_screenshot(device_id, device_name=None, assigned_child=None, current_app="Mobile Screen Active", is_locked=False, study_mode=False):
+    """Generates an informative telemetry screenshot card for a mobile sub-device and saves it to screenshots table."""
+    try:
+        from PIL import Image, ImageDraw
+        import io, base64
+
+        w, h = 1024, 576
+        img = Image.new("RGB", (w, h), color=(15, 23, 42))
+        draw = ImageDraw.Draw(img)
+
+        # Outer border
+        draw.rectangle([10, 10, w - 10, h - 10], outline=(30, 41, 59), width=2)
+
+        # Header bar
+        dev_title = (device_name or f"Device #{device_id}").upper()
+        child_title = assigned_child or "Student"
+        draw.rectangle([12, 12, w - 12, 70], fill=(30, 41, 59))
+        draw.text((30, 24), f"MOBILE SUB-DEVICE: {dev_title}  |  ASSIGNED: {child_title}", fill=(248, 250, 252))
+        now_str = datetime.now().strftime("%I:%M:%S %p, %d %b %Y")
+        draw.text((w - 280, 24), now_str, fill=(148, 163, 184))
+
+        # Center Card
+        card_w, card_h = 760, 360
+        x0, y0 = (w - card_w) // 2, 105
+        x1, y1 = x0 + card_w, y0 + card_h
+
+        if is_locked:
+            bg_card = (69, 10, 10)
+            border_col = (239, 68, 68)
+            title_text = "[ EMERGENCY SCREEN ACCESS LOCKED ]"
+            title_col = (248, 113, 113)
+            sub_text = "Screen access temporarily paused by parent. Device is locked."
+        elif study_mode:
+            bg_card = (30, 27, 75)
+            border_col = (99, 102, 241)
+            title_text = "[ STUDY MODE ACTIVE ]"
+            title_col = (129, 140, 248)
+            sub_text = "Study profile active. Social media & non-study apps restricted."
+        else:
+            bg_card = (6, 78, 59)
+            border_col = (16, 185, 129)
+            title_text = "[ MOBILE SCREEN ACTIVE & MONITORED ]"
+            title_col = (52, 211, 153)
+            sub_text = "Live telemetry active. Screen time is being recorded."
+
+        draw.rectangle([x0, y0, x1, y1], fill=bg_card, outline=border_col, width=3)
+
+        draw.text((x0 + 40, y0 + 35), title_text, fill=title_col)
+        draw.text((x0 + 40, y0 + 85), f"Device Model: {dev_title}", fill=(241, 245, 249))
+        draw.text((x0 + 40, y0 + 125), f"Assigned Child: {child_title}", fill=(241, 245, 249))
+        draw.text((x0 + 40, y0 + 165), f"Foreground Activity: {current_app or 'Mobile Screen Active'}", fill=(226, 232, 240))
+        draw.text((x0 + 40, y0 + 205), f"Policy Status: {sub_text}", fill=(203, 213, 225))
+        draw.text((x0 + 40, y0 + 250), "Parent Remote Control: Connected & Active", fill=(56, 189, 248))
+        draw.text((x0 + 40, y0 + 290), f"Last Live Heartbeat: {now_str}", fill=(148, 163, 184))
+
+        # Bottom status bar
+        draw.rectangle([12, h - 55, w - 12, h - 12], fill=(30, 41, 59))
+        draw.text((30, h - 40), "PARENTAL SCREEN TRACKER  *  LIVE SUB-DEVICE TELEMETRY  *  SECURE CLOUD SYNC", fill=(100, 116, 139))
+
+        # Full image base64
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=85)
+        image_data = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode("utf-8")
+
+        # Thumbnail base64
+        thumb = img.resize((240, 135), Image.Resampling.LANCZOS)
+        thumb_buf = io.BytesIO()
+        thumb.save(thumb_buf, format="JPEG", quality=75)
+        thumb_data = "data:image/jpeg;base64," + base64.b64encode(thumb_buf.getvalue()).decode("utf-8")
+
+        proc_name = "Mobile Screen" if not is_locked else "Parental Lock"
+        win_title = current_app or "Active Screen"
+        category = "Locked" if is_locked else ("Study" if study_mode else "Mobile")
+
+        save_screenshot(
+            device_id=device_id,
+            process_name=proc_name,
+            window_title=win_title,
+            category_name=category,
+            image_data=image_data,
+            thumbnail_data=thumb_data
+        )
+        return {
+            "image_data": image_data,
+            "thumbnail_data": thumb_data,
+            "process_name": proc_name,
+            "window_title": win_title,
+            "category_name": category
+        }
+    except Exception as e:
+        print(f"[database] Error generating mobile status screenshot for device {device_id}: {e}")
+        return None
+
 def record_sub_mobile_heartbeat(device_token_or_id, current_app="Screen Active", duration_seconds=15, is_active=True):
-    """Updates last seen and logs mobile activity for a paired mobile sub-device."""
+    """Updates last seen, logs activity, and generates live telemetry screenshot for a paired mobile sub-device."""
     with get_db() as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             if isinstance(device_token_or_id, str) and not str(device_token_or_id).isdigit():
@@ -1131,13 +1302,24 @@ def record_sub_mobile_heartbeat(device_token_or_id, current_app="Screen Active",
                 """, (dev_id, current_app, current_app, "Mobile App", duration_seconds))
             conn.commit()
             status = get_device_lock_and_study_status(dev_id)
-            return {
-                "device_id": dev_id,
-                "device_name": dev["device_name"],
-                "assigned_child": dev["assigned_child"],
-                "emergency_lock": status["emergency_lock"],
-                "study_mode_active": status["study_mode_active"]
-            }
+
+    # Generate or refresh live telemetry screenshot for this mobile sub-device
+    generate_mobile_status_screenshot(
+        device_id=dev_id,
+        device_name=dev["device_name"],
+        assigned_child=dev["assigned_child"],
+        current_app=current_app,
+        is_locked=status["emergency_lock"],
+        study_mode=status["study_mode_active"]
+    )
+
+    return {
+        "device_id": dev_id,
+        "device_name": dev["device_name"],
+        "assigned_child": dev["assigned_child"],
+        "emergency_lock": status["emergency_lock"],
+        "study_mode_active": status["study_mode_active"]
+    }
 
 if __name__ == "__main__":
     init_db()

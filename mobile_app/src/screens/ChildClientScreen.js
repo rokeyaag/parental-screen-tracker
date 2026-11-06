@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { colors } from '../theme/colors';
 import { api } from '../api/client';
@@ -26,8 +27,8 @@ export default function ChildClientScreen() {
   } = useDevices();
 
   const [pairingCode, setPairingCode] = useState('');
-  const [phoneName, setPhoneName] = useState(subDeviceName || 'Child Phone');
-  const [childName, setChildName] = useState(subChildName || 'Student');
+  const [phoneName, setPhoneName] = useState(subDeviceName || 'Galaxy A16');
+  const [childName, setChildName] = useState(subChildName || 'Shajidur Rahman');
   const [pairingLoading, setPairingLoading] = useState(false);
 
   // Status & Lock state
@@ -47,9 +48,9 @@ export default function ChildClientScreen() {
     try {
       const res = await api.pairDevice(pairingCode.trim(), 'Mobile-UUID-' + Date.now(), 'Android');
       if (res.success && res.device) {
-        setSubDeviceToken(res.device.device_token || 'paired');
-        setSubDeviceName(res.device.device_name || phoneName);
-        setSubChildName(res.device.assigned_child || childName);
+        await setSubDeviceToken(res.device.device_token || 'paired');
+        await setSubDeviceName(res.device.device_name || phoneName);
+        await setSubChildName(res.device.assigned_child || childName);
         Alert.alert('Success (সফল)', `This mobile is now linked to the Main Controller as '${res.device.device_name}'!`);
       } else {
         Alert.alert('Pairing Failed', 'Invalid or expired code. Please generate a fresh code from the Main Controller.');
@@ -61,14 +62,34 @@ export default function ChildClientScreen() {
     }
   };
 
-  // Heartbeat loop for sub-mobile
+  // Direct quick link for Galaxy A16 (device ID 214)
+  const handleQuickLinkGalaxyA16 = async () => {
+    setPairingLoading(true);
+    try {
+      await setSubDeviceToken('ce7de6027cd8eb0544dae0f712c52a80bf464f7c');
+      await setSubDeviceName('Galaxy A16');
+      await setSubChildName('Shajidur Rahman');
+      Alert.alert('Success (সফল)', 'Galaxy A16 (Shajidur Rahman) এর সাথে সরাসরি যুক্ত করা হয়েছে!');
+    } catch (e) {
+      Alert.alert('Error', e.message);
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  // Heartbeat loop for sub-mobile (rapid 3.5s poll for instant lock response)
   useEffect(() => {
     if (!subDeviceToken) return;
 
     let mounted = true;
     const sendBeat = async () => {
       try {
-        const res = await api.sendSubHeartbeat(subDeviceToken, 'Mobile Active Screen', 15, true);
+        const currentApp = isLocked
+          ? 'Screen Locked by Parent'
+          : studyMode
+          ? 'Study Mode Profile'
+          : 'Mobile Screen Active';
+        const res = await api.sendSubHeartbeat(subDeviceToken, currentApp, 4, true);
         if (mounted && res) {
           setIsLocked(!!res.emergency_lock);
           setStudyMode(!!res.study_mode_active);
@@ -80,20 +101,20 @@ export default function ChildClientScreen() {
     };
 
     sendBeat();
-    const timer = setInterval(sendBeat, 10000); // 10s sync
+    const timer = setInterval(sendBeat, 3500); // 3.5s rapid heartbeat
     return () => {
       mounted = false;
       clearInterval(timer);
     };
-  }, [subDeviceToken]);
+  }, [subDeviceToken, isLocked, studyMode]);
 
   // Handle Parent PIN validation to exit sub-mode
-  const handleVerifyPin = () => {
+  const handleVerifyPin = async () => {
     if (enteredPin === '1234') {
       setPinModalVisible(false);
       setEnteredPin('');
-      setAppMode('master');
-      Alert.alert('Switched', 'You are now back in Main Controller mode.');
+      await setAppMode('master');
+      Alert.alert('Switched (পরিবর্তিত)', 'You are now back in Main Controller mode.');
     } else {
       Alert.alert('Incorrect PIN', 'Please enter the correct Parent PIN (Default: 1234).');
       setEnteredPin('');
@@ -115,7 +136,7 @@ export default function ChildClientScreen() {
           </Text>
         </View>
         <Text style={styles.lockNotice}>
-          Monitoring Active • Device: {subDeviceName || phoneName}
+          Monitoring Active • Device: {subDeviceName || phoneName} • Sync: {lastSyncTime || 'Live'}
         </Text>
         <TouchableOpacity
           style={styles.unlockPinBtn}
@@ -162,19 +183,41 @@ export default function ChildClientScreen() {
   // If Not Paired: Pairing Screen
   if (!subDeviceToken) {
     return (
-      <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.containerScroll}>
         <View style={styles.header}>
           <Text style={styles.headerBadge}>📱 SUB-DEVICE (CHILD CLIENT)</Text>
           <Text style={styles.headerTitle}>Connect Child Mobile</Text>
           <Text style={styles.headerSub}>
-            Pair this mobile device with your Parent Main Controller.
+            এই ফোনটি সন্তানের অভিভাবকের মূল অ্যাপের সাথে কানেক্ট করুন।
           </Text>
         </View>
 
+        {/* Quick Connect for Registered Galaxy A16 */}
+        <TouchableOpacity
+          style={styles.quickConnectCard}
+          activeOpacity={0.8}
+          onPress={handleQuickLinkGalaxyA16}
+          disabled={pairingLoading}
+        >
+          <View style={styles.quickConnectIconCircle}>
+            <Text style={{ fontSize: 24 }}>⚡</Text>
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.quickConnectTitle}>সরাসরি যুক্ত করুন: Galaxy A16</Text>
+            <Text style={styles.quickConnectSub}>শিশু: Shajidur Rahman (রেজিস্টার্ড সাব-ডিভাইস)</Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>অথবা নতুন কোড দিন (OR NEW CODE)</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
         <View style={styles.card}>
-          <Text style={styles.stepTitle}>Step 1: Get Code from Main Controller</Text>
+          <Text style={styles.stepTitle}>অভিভাবকের ফোন থেকে ৬ ডিজিটের কোড দিন</Text>
           <Text style={styles.stepDesc}>
-            Open the Parental Screen Tracker app on the Parent's phone, tap "+ Add Sub-Device", choose "Child Mobile", and enter the 6-digit code below:
+            অভিভাবকের ফোনে "+ Add Sub" ট্যাপ করে জেনারেট করা ৬ ডিজিটের পেয়ারিং কোড নিচে লিখুন:
           </Text>
 
           <Text style={styles.inputLabel}>6-Digit Pairing Code (পেয়ারিং কোড):</Text>
@@ -207,11 +250,11 @@ export default function ChildClientScreen() {
         >
           <Text style={styles.switchBackText}>← Back to Main Controller (মেইন কন্ট্রোলার)</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     );
   }
 
-  // Paired Active Sub-Device Dashboard
+  // Paired Active Sub-Device Dashboard (No Parent Controls, Clean Protection State)
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -237,6 +280,12 @@ export default function ChildClientScreen() {
           ✓ Remote Emergency Lock ready{'\n'}
           ✓ Study Mode status: {studyMode ? '🟢 Active' : '⚪ Standby'}{'\n'}
           ✓ Background protection running
+        </Text>
+      </View>
+
+      <View style={styles.cleanNoteBox}>
+        <Text style={styles.cleanNoteText}>
+          🛡️ অভিভাবক কন্ট্রোল সক্রিয় রয়েছে। এই ডিভাইসে কোনো নিয়ন্ত্রণ বাটন নেই।
         </Text>
       </View>
 
@@ -287,7 +336,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0f172a',
-    padding: 20,
+    padding: 24,
+    justifyContent: 'center',
+  },
+  containerScroll: {
+    padding: 24,
+    paddingVertical: 48,
+    backgroundColor: '#0f172a',
+    minHeight: '100%',
     justifyContent: 'center',
   },
   header: {
@@ -315,6 +371,52 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#94a3b8',
     textAlign: 'center',
+    lineHeight: 18,
+  },
+  quickConnectCard: {
+    backgroundColor: '#1e293b',
+    borderWidth: 2,
+    borderColor: '#38bdf8',
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  quickConnectIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickConnectTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  quickConnectSub: {
+    color: '#38bdf8',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#334155',
+  },
+  dividerText: {
+    color: '#64748b',
+    fontSize: 11,
+    fontWeight: '700',
+    marginHorizontal: 10,
   },
   card: {
     backgroundColor: '#1e293b',
@@ -409,7 +511,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1e293b',
     borderRadius: 14,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#334155',
   },
@@ -423,6 +525,21 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 13,
     lineHeight: 22,
+  },
+  cleanNoteBox: {
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  cleanNoteText: {
+    color: '#7dd3fc',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   exitSubBtn: {
     backgroundColor: '#334155',
@@ -479,6 +596,7 @@ const styles = StyleSheet.create({
     color: '#fecaca',
     fontSize: 12,
     marginBottom: 24,
+    textAlign: 'center',
   },
   unlockPinBtn: {
     backgroundColor: '#ffffff',
@@ -560,4 +678,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
